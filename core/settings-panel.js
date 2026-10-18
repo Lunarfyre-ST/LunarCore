@@ -9,7 +9,7 @@ const icons = {
 export function createSettingsDrawer(title, icon, className) {
     const drawer = document.createElement('details');
     drawer.className = `lunar-drawer ${className}`;
-    const summary = document.createElement('summary'); summary.className = 'inline-drawer-header';
+    const summary = document.createElement('summary'); summary.className = 'inline-drawer-header standoutHeader';
     summary.innerHTML = `<svg class="lunar-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="currentColor">${icons[icon]}</svg>`;
     const label = document.createElement('b'); label.textContent = title; summary.append(label);
     const arrow = document.createElement('span'); arrow.className = 'lunar-chevron'; arrow.setAttribute('aria-hidden', 'true');
@@ -24,11 +24,27 @@ export function mountSettingsPanel(target) {
     const panel = createSettingsDrawer('LunarCore', 'moon', 'lunar-core');
     const alert = document.createElement('span'); alert.className = 'lunar-attention';
     panel.label.append(alert);
-    const version = document.createElement('small'); version.className = 'lunar-version'; version.textContent = `LunarCore${VERSION}`;
+    const version = document.createElement('small'); version.className = 'lunar-version'; version.textContent = `LunarCore ${VERSION}`;
     panel.content.append(version); target.append(panel.drawer);
+    // ImmersiveGroups mounts asynchronously and may use the other settings
+    // column. Move only our panel, preserving every other extension's order.
+    const doc = target.ownerDocument;
+    const observer = new MutationObserver(() => placeAboveImmersiveGroups());
+    function placeAboveImmersiveGroups() {
+        const anchor = doc.querySelector('#extensions_settings .prome-vn-settings, #extensions_settings2 .prome-vn-settings');
+        const column = anchor?.closest('#extensions_settings, #extensions_settings2');
+        if (!column) return false;
+        let sibling = anchor;
+        while (sibling.parentElement !== column) sibling = sibling.parentElement;
+        if (sibling.previousElementSibling !== panel.drawer) column.insertBefore(panel.drawer, sibling);
+        observer.disconnect();
+        return true;
+    }
+    doc.addEventListener('immersivegroups:ready', placeAboveImmersiveGroups);
+    if (!placeAboveImmersiveGroups()) for (const column of doc.querySelectorAll('#extensions_settings, #extensions_settings2')) observer.observe(column, { childList: true });
     return {
         content: panel.content,
         updateStatus(stats) { alert.textContent = stats.attentionCount ? ` · ${stats.attentionCount} attention` : ''; },
-        dispose() { panel.drawer.remove(); },
+        dispose() { observer.disconnect(); doc.removeEventListener('immersivegroups:ready', placeAboveImmersiveGroups); panel.drawer.remove(); },
     };
 }

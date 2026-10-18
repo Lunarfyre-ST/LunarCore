@@ -58,9 +58,17 @@ try {
         });
     });
     const toggle = page.locator('[data-record]');
+    await page.evaluate(() => {
+        const column = document.createElement('div'); column.id = 'extensions_settings';
+        document.body.prepend(column);
+        const ig = document.createElement('div'); ig.className = 'prome-vn-settings';
+        ig.textContent = 'ImmersiveGroups'; column.append(ig);
+        document.dispatchEvent(new Event('immersivegroups:ready'));
+    });
+    assert.equal(await page.evaluate(() => document.querySelector('.prome-vn-settings').previousElementSibling === document.querySelector('.lunar-core')), true);
     assert.equal(await page.locator('.lunar-core').evaluate(node => node.open), false);
     await page.locator('.lunar-core > summary').click();
-    assert.equal(await page.locator('.lunar-version').textContent(), 'LunarCore0.0.5');
+    assert.equal(await page.locator('.lunar-version').textContent(), 'LunarCore 0.0.5');
     assert.equal(await page.locator('.lunar-core > .lunar-drawer-content > details').count(), 2);
     await page.locator('.lunar-ui > summary').focus(); await page.keyboard.press('Enter');
     assert.equal(await page.locator('.lunar-ui').evaluate(node => node.open), true);
