@@ -1,12 +1,14 @@
 import { connectImmersiveGroups } from '../../integrations/immersivegroups.js';
 import { readDebugPreferences, saveDebugPreferences } from '../../core/debug-preferences.js';
+import { createSettingsDrawer } from '../../core/settings-panel.js';
+import { VERSION } from '../../core/version.js';
 
-export function mountDebug(recorder, context, target) {
+export function mountDebug(recorder, context, target, { onStatus = () => {} } = {}) {
     const preferences = readDebugPreferences(context);
-    const panel = document.createElement('div');
-    panel.className = 'lunar-debug inline-drawer';
-    panel.innerHTML = `<div class="inline-drawer-toggle inline-drawer-header"><b>LunarDebug v0.0.4 <span data-alert></span></b><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div>
-        <div class="inline-drawer-content">
+    const section = createSettingsDrawer('LunarDebug', 'butterfly', 'lunar-debug');
+    const panel = section.drawer;
+    const alert = document.createElement('span'); alert.dataset.alert = ''; section.label.append(alert);
+    section.content.innerHTML = `
         <label><input type="checkbox" data-record> Record diagnostic metadata</label>
         <label>Maximum retained records <input type="number" min="1000" max="50000" step="1000" data-capacity></label>
         <label><input type="checkbox" data-auto-start> Start recording automatically after reload</label>
@@ -14,13 +16,14 @@ export function mountDebug(recorder, context, target) {
         <p data-status role="status"></p><p data-integration></p>
         <div class="lunar-debug-actions"><button type="button" class="menu_button" data-export>Export JSON</button><button type="button" class="menu_button" data-clear>Clear recording</button></div>
         <label>Event filter <select data-filter><option value="">All events</option><option value="attention">Attention records</option><option value="ui.">UI actions / scrolling</option><option value="ig.setting">Configuration</option><option value="outfit.">Outfits</option><option value="background.">Backgrounds</option><option value="animation.">Animations</option><option value="context.">Context injection</option><option value="automation.">Automation</option><option value="host.">SillyTavern</option><option value="ig.">IG changes</option></select></label>
-        <pre data-events aria-label="Recent diagnostic events"></pre></div>`;
+        <pre data-events aria-label="Recent diagnostic events"></pre>`;
     target.append(panel);
     const query = selector => panel.querySelector(selector);
     let disconnect = null, lastSignature = '';
     function attach() { disconnect?.(); disconnect = connectImmersiveGroups(recorder.api, context); }
     function render() {
         const stats = recorder.stats();
+        onStatus(stats);
         query('[data-status]').textContent = `${stats.active ? 'Recording' : 'Stopped'} · ${stats.count}/${stats.capacity} records · ${stats.dropped} oldest events discarded · ${stats.summarized} routine repeats summarized · ${stats.attentionCount} attention records · ${stats.cancelledCount} cancellations · ${stats.unobservedCount} generation completions not observed (not automatically errors)`;
         query('[data-alert]').textContent = stats.attentionCount ? `· ${stats.attentionCount} attention` : '';
         query('[data-alert]').classList.toggle('lunar-debug-warning', stats.attentionCount > 0);
@@ -59,7 +62,7 @@ export function mountDebug(recorder, context, target) {
     query('[data-auto-start]').addEventListener('change', event => { preferences.autoStart = event.target.checked; saveDebugPreferences(context, preferences); });
     query('[data-export]').addEventListener('click', () => {
         disconnect?.flush();
-        const data = recorder.export({ lunarCore: '0.0.4', immersiveGroups: globalThis.ImmersiveGroups?.version });
+        const data = recorder.export({ lunarCore: VERSION, immersiveGroups: globalThis.ImmersiveGroups?.version });
         const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
         const link = document.createElement('a'); link.href = url; link.download = 'lunar-debug-recording.json';
         document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);

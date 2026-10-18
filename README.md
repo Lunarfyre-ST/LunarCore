@@ -1,4 +1,4 @@
-# LunarCore v0.0.4 — LunarDebug preview
+# LunarCore v0.0.5 — Modular settings preview
 
 LunarCore is a SillyTavern UI extension. Its first module is LunarDebug, an
 optional recorder for real-use diagnostic metadata, especially ImmersiveGroups.
@@ -7,7 +7,7 @@ Install this repository through SillyTavern's extension installer, or place it
 in your development installation's third-party extension directory. No build
 or npm install is required for the extension itself.
 
-Open **Extensions → LunarDebug**, enable **Record diagnostic metadata**, reproduce
+Open **Extensions → LunarCore → LunarDebug**, enable **Record diagnostic metadata**, reproduce
 the behavior, stop recording, then choose **Export JSON**. Recording starts off
 unless you enable **Start recording automatically after reload**. Stop retains
 the buffer; Clear erases it; page reload loses it. The default limit is 10,000
@@ -16,6 +16,11 @@ newest records and counts removed ones as discarded. This is a record count,
 not a byte or file-size limit. Capacity and auto-start preferences are saved
 through SillyTavern; recordings themselves are never persisted automatically.
 Exports include the whole buffer regardless of the panel's event filter.
+
+The LunarCore drawer contains a small version label and separate LunarUI and
+LunarDebug drawers. Blue moon, laptop and butterfly icons identify them. LunarUI
+is a placeholder for upcoming customization controls. Closing either drawer
+does not stop recording; attention counts remain visible on the LunarCore header.
 
 ## Background use
 

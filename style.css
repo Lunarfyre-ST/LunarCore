@@ -11,3 +11,16 @@
 .lunar-debug input[data-capacity] { width: 8em; }
 .lunar-debug-actions { display: flex; flex-wrap: wrap; gap: 0.5em; }
 .lunar-debug pre { max-height: 20rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.75em; user-select: text; }
+.lunar-core { width: 100%; }
+.lunar-drawer > summary { display: flex; align-items: center; gap: 0.5em; cursor: pointer; list-style: none; padding: 0.4em 0.5em; }
+.lunar-drawer > summary::-webkit-details-marker { display: none; }
+.lunar-drawer > summary:focus-visible { outline: 2px solid #64b5f6; outline-offset: 2px; }
+.lunar-icon { width: 1.25em; height: 1.25em; flex: 0 0 auto; color: #64b5f6; }
+.lunar-chevron { margin-inline-start: auto; width: 1.25em; height: 1.25em; flex: 0 0 auto; }
+.lunar-chevron svg { display: block; width: 100%; height: 100%; }
+.lunar-drawer[open] > summary > .lunar-chevron { transform: rotate(180deg); }
+.lunar-drawer-content { padding: 0.25em 0.5em 0.5em; }
+.lunar-version { display: block; font-size: 0.75em; opacity: 0.65; margin: 0.25em 0 0.75em; }
+.lunar-core > .lunar-drawer-content > .lunar-drawer { margin-block: 0.4em; }
+.lunar-ui p { font-size: 0.9em; opacity: 0.8; }
+.lunar-attention { font-size: 0.8em; color: #e3b75a; }

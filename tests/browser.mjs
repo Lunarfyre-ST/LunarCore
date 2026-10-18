@@ -36,6 +36,10 @@ try {
     browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH });
     const page = await browser.newPage({ viewport: { width: 1000, height: 850 }, reducedMotion: 'no-preference' });
     const errors = []; page.on('pageerror', error => errors.push(error.message));
+    const openDebug = async () => {
+        await page.locator('.lunar-core > summary').click();
+        await page.locator('.lunar-debug > summary').click();
+    };
     await page.goto(`http://127.0.0.1:${server.address().port}`);
     await page.evaluate(() => {
         ctx.extensionSettings = { ImmersiveGroups: { outfitFadeIn: 200, layoutMode: 'desktop',
@@ -54,6 +58,15 @@ try {
         });
     });
     const toggle = page.locator('[data-record]');
+    assert.equal(await page.locator('.lunar-core').evaluate(node => node.open), false);
+    await page.locator('.lunar-core > summary').click();
+    assert.equal(await page.locator('.lunar-version').textContent(), 'LunarCore0.0.5');
+    assert.equal(await page.locator('.lunar-core > .lunar-drawer-content > details').count(), 2);
+    await page.locator('.lunar-ui > summary').focus(); await page.keyboard.press('Enter');
+    assert.equal(await page.locator('.lunar-ui').evaluate(node => node.open), true);
+    assert.equal(await page.locator('.lunar-debug').evaluate(node => node.open), false);
+    await page.keyboard.press('Enter');
+    await page.locator('.lunar-debug > summary').click();
     await toggle.waitFor(); assert.equal(await toggle.isChecked(), false);
     await toggle.check();
     await page.locator('#ig-tab-animations').click();
@@ -114,7 +127,7 @@ try {
     const json = JSON.parse(await readFile(await download.path(), 'utf8'));
     assert.equal(JSON.stringify(json).includes('PRIVATE'), false);
     assert.equal(json.schemaVersion, 4);
-    assert.equal(json.versions.lunarCore, '0.0.4');
+    assert.equal(json.versions.lunarCore, '0.0.5');
     assert.ok(json.events.some(row => row.event === 'ig.setting_snapshot' && row.setting === 'outfitFadeIn' && row.value === 200));
     assert.ok(json.events.some(row => row.event === 'ig.setting_change' && row.before === 200 && row.after === 300 && row.count === 100));
     assert.ok(json.events.some(row => row.event === 'ig.layout' && row.count >= 100));
@@ -157,15 +170,21 @@ try {
     await page.waitForFunction(() => document.querySelector('[data-events]').textContent.includes('runtime.error'));
     assert.equal(await page.locator('[data-events]').textContent().then(text => text.includes('PRIVATE')), false);
     assert.ok((await page.locator('[data-alert]').textContent()).includes('2 attention'));
+    await page.locator('.lunar-core > summary').click();
+    assert.equal(await page.locator('.lunar-core').evaluate(node => node.open), false);
+    assert.ok((await page.locator('.lunar-core > summary .lunar-attention').textContent()).includes('2 attention'));
+    assert.equal(await toggle.isChecked(), true);
+    await page.locator('.lunar-core > summary').click();
     await mkdir(path.join(root, 'tests/artifacts'), { recursive: true });
     await page.screenshot({ path: path.join(root, 'tests/artifacts/lunar-debug.png') });
     await toggle.uncheck(); await page.locator('[data-clear]').click();
     assert.equal(await page.locator('[data-export]').isDisabled(), true);
-    await page.reload(); assert.equal(await toggle.isChecked(), false);
+    await page.reload(); await openDebug(); assert.equal(await toggle.isChecked(), false);
     await page.locator('[data-auto-start]').check();
     assert.equal(await page.evaluate(() => ctx.extensionSettings.LunarCore.debug.autoStart), true);
     // Simulate the host restoring preferences before extension initialization.
     await page.goto(`http://127.0.0.1:${server.address().port}/?autostart`);
+    await openDebug();
     assert.equal(await toggle.isChecked(), true);
     assert.equal(await page.locator('[data-capacity]').inputValue(), '2000');
     assert.equal(await page.locator('[data-auto-start]').isChecked(), true);
