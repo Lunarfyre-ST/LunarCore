@@ -17,7 +17,7 @@ const server = http.createServer(async (req, res) => {
         if (pathname === '/') {
             res.setHeader('content-type', 'text/html');
             const content = fixture.replace('window.ctx={', 'window.ctx={extensionSettings:{},');
-            res.end(url.searchParams.has('autostart') ? content.replace('window.SillyTavern=', 'ctx.extensionSettings={LunarCore:{debug:{capacity:2000,autoStart:true}}};window.SillyTavern=') : content);
+            res.end(url.searchParams.has('autostart') ? content.replace('window.SillyTavern=', 'ctx.extensionSettings={LunarCore:{debug:{capacity:2000,autoStart:true},ui:{moonlightBlue:true}}};window.SillyTavern=') : content);
             return;
         }
         res.setHeader('content-type', pathname.endsWith('.css') ? 'text/css' : 'text/javascript');
@@ -42,8 +42,8 @@ try {
     };
     await page.goto(`http://127.0.0.1:${server.address().port}`);
     await page.evaluate(() => {
-        ctx.extensionSettings = { ImmersiveGroups: { outfitFadeIn: 200, layoutMode: 'desktop',
-            sceneAutomation: { enabled: true, apiUrl: 'PRIVATE', instructionsAll: 'PRIVATE', apiTransport: 'main' } } };
+        ctx.extensionSettings.ImmersiveGroups = { outfitFadeIn: 200, layoutMode: 'desktop',
+            sceneAutomation: { enabled: true, apiUrl: 'PRIVATE', instructionsAll: 'PRIVATE', apiTransport: 'main' } };
         Object.assign(ctx.eventTypes, { GENERATION_ENDED: 'generationEnd', GENERATION_STOPPED: 'generationStop', GENERATION_AFTER_COMMANDS: 'generationAfter' });
         const shell = document.createElement('div'); shell.className = 'ig-settings-shell';
         shell.innerHTML = '<button id="ig-tab-animations">PRIVATE TAB TEXT</button><button data-scene-run>PRIVATE BUTTON TEXT</button><input type="range" data-animation-setting="outfitFadeIn"><input type="text" data-scene-setting="apiUrl">';
@@ -68,15 +68,30 @@ try {
     assert.equal(await page.evaluate(() => document.querySelector('.prome-vn-settings').previousElementSibling === document.querySelector('.lunar-core')), true);
     assert.equal(await page.locator('.lunar-core').evaluate(node => node.open), false);
     await page.locator('.lunar-core > summary').click();
-    assert.equal(await page.locator('.lunar-version').textContent(), 'LunarCore 0.0.5');
+    assert.equal(await page.locator('.lunar-version').textContent(), 'LunarCore 0.0.6');
     assert.equal(await page.locator('.lunar-core > .lunar-drawer-content > details').count(), 2);
     await page.locator('.lunar-ui > summary').focus(); await page.keyboard.press('Enter');
     assert.equal(await page.locator('.lunar-ui').evaluate(node => node.open), true);
     assert.equal(await page.locator('.lunar-debug').evaluate(node => node.open), false);
-    await page.keyboard.press('Enter');
+    const moonlight = page.locator('[data-moonlight]');
+    assert.equal(await moonlight.isChecked(), false);
+    await page.evaluate(() => document.documentElement.style.setProperty('--SmartThemeQuoteColor', '#e0aa44'));
+    await moonlight.check();
+    assert.equal(await page.evaluate(() => document.body.classList.contains('lunar-moonlight')), true);
+    assert.equal(await page.evaluate(() => ctx.extensionSettings.LunarCore.ui.moonlightBlue), true);
+    assert.equal(await page.evaluate(() => getComputedStyle(document.body).getPropertyValue('--SmartThemeQuoteColor').trim()), '#9dd5ff');
+    assert.equal(await page.evaluate(() => document.documentElement.style.getPropertyValue('--SmartThemeQuoteColor')), '#e0aa44');
+    await mkdir(path.join(root, 'tests/artifacts'), { recursive: true });
+    await page.screenshot({ path: path.join(root, 'tests/artifacts/lunar-moonlight.png') });
+    await moonlight.uncheck();
+    assert.equal(await page.evaluate(() => getComputedStyle(document.body).getPropertyValue('--SmartThemeQuoteColor').trim()), '#e0aa44');
+    await page.locator('.lunar-ui > summary').click();
     await page.locator('.lunar-debug > summary').click();
     await toggle.waitFor(); assert.equal(await toggle.isChecked(), false);
     await toggle.check();
+    await page.locator('.lunar-ui > summary').click();
+    await moonlight.check(); await moonlight.uncheck();
+    await page.locator('.lunar-ui > summary').click();
     await page.locator('#ig-tab-animations').click();
     await page.locator('[data-scene-run]').click();
     await page.evaluate(() => {
@@ -135,7 +150,8 @@ try {
     const json = JSON.parse(await readFile(await download.path(), 'utf8'));
     assert.equal(JSON.stringify(json).includes('PRIVATE'), false);
     assert.equal(json.schemaVersion, 4);
-    assert.equal(json.versions.lunarCore, '0.0.5');
+    assert.equal(json.versions.lunarCore, '0.0.6');
+    assert.ok(json.events.some(row => row.event === 'ui.theme' && row.theme === 'moonlight_blue' && row.enabled === true));
     assert.ok(json.events.some(row => row.event === 'ig.setting_snapshot' && row.setting === 'outfitFadeIn' && row.value === 200));
     assert.ok(json.events.some(row => row.event === 'ig.setting_change' && row.before === 200 && row.after === 300 && row.count === 100));
     assert.ok(json.events.some(row => row.event === 'ig.layout' && row.count >= 100));
@@ -196,6 +212,7 @@ try {
     assert.equal(await toggle.isChecked(), true);
     assert.equal(await page.locator('[data-capacity]').inputValue(), '2000');
     assert.equal(await page.locator('[data-auto-start]').isChecked(), true);
+    assert.equal(await page.evaluate(() => document.body.classList.contains('lunar-moonlight')), true);
     await toggle.uncheck();
     // Broken or absent consumers must not break the optional producer bridge.
     assert.equal(await page.evaluate(async prefix => {
@@ -214,6 +231,9 @@ try {
         delete globalThis[Symbol.for('LunarDebug.sink')]; helper.diagnostic('context.injection', {});
         return true;
     }, prefix), true);
+    await page.evaluate(() => globalThis[Symbol.for('LunarCore.runtime')].dispose());
+    assert.equal(await page.evaluate(() => document.body.classList.contains('lunar-moonlight')), false);
+    assert.equal(await page.locator('.lunar-core').count(), 0);
     assert.deepEqual(errors, []);
     console.log('Browser regressions passed: privacy, summaries, adjustable limits, retained attention history, runtime failure detection, saved preferences, auto-start, action correlation, legacy warning, listener cleanup and real IG animation hooks.');
 } finally { await browser?.close(); await new Promise(resolve => server.close(resolve)); }

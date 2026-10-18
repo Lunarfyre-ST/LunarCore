@@ -4,7 +4,7 @@ import { SETTINGS, ACTIONS, settingValue } from './settings-schema.js';
 export const EVENTS = Object.freeze([
     'runtime.error', 'runtime.unhandled_rejection',
     'host.generation_coverage', 'host.generation_after_commands', 'generation.lifecycle',
-    'ui.action', 'ui.scroll', 'ig.setting_snapshot', 'ig.setting_change', 'ig.configuration',
+    'ui.action', 'ui.scroll', 'ui.theme', 'ig.setting_snapshot', 'ig.setting_change', 'ig.configuration',
     'recorder', 'integration', 'outfit.change', 'background.select',
     'background.automatic', 'background.observed', 'animation.swap', 'animation.background',
     'automation.execute', 'automation.api', 'context.injection', 'context.history_cleanup',
@@ -16,6 +16,7 @@ export const EVENTS = Object.freeze([
     'ig.bindings', 'ig.editor_layout',
 ]);
 const enumFields = {
+    theme: ['moonlight_blue'],
     action: ACTIONS, setting: Object.keys(SETTINGS), profile: ['shared', 'desktop', 'mobile'],
     layout: ['desktop', 'mobile'], area: ['settings', 'live_tuning', 'outfit_picker', 'background_picker', 'library'],
     ownership: ['shared', 'explicit', 'inherited'], beforeOwnership: ['shared', 'explicit', 'inherited'],

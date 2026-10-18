@@ -20,7 +20,10 @@ export function mountDebug(recorder, context, target, { onStatus = () => {} } = 
     target.append(panel);
     const query = selector => panel.querySelector(selector);
     let disconnect = null, lastSignature = '';
-    function attach() { disconnect?.(); disconnect = connectImmersiveGroups(recorder.api, context); }
+    function attach() {
+        disconnect?.(); disconnect = connectImmersiveGroups(recorder.api, context);
+        recorder.api.emit('ui.theme', { theme: 'moonlight_blue', enabled: (context.extensionSettings || context.extension_settings)?.LunarCore?.ui?.moonlightBlue === true });
+    }
     function render() {
         const stats = recorder.stats();
         onStatus(stats);

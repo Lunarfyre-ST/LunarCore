@@ -17,7 +17,7 @@ test('off by default; exports only allowlisted metadata, never private text or I
         operation: secret, sequence: secret, phase: secret, kind: secret,
         depth: secret, issues: Infinity, failed: NaN, metadata: { text: secret },
     });
-    const data = recorder.export({ lunarCore: '0.0.5', immersiveGroups: secret });
+    const data = recorder.export({ lunarCore: '0.0.6', immersiveGroups: secret });
     assert.equal(JSON.stringify(data).includes(secret), false);
     assert.equal(data.versions.immersiveGroups, null);
     assert.deepEqual(data.events.at(-1), {

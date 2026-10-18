@@ -3,7 +3,7 @@
 ## Purpose and current scope
 
 LunarCore is one modular SillyTavern UI extension. LunarDebug is an optional
-metadata recorder; LunarUI currently has a placeholder settings drawer. Do not
+metadata recorder; LunarUI offers an optional Moonlight Blue recolor. Do not
 describe unimplemented UI, state or memory features as available.
 
 Read [README.md](README.md) for usage, [docs/diagnostics.md](docs/diagnostics.md)
@@ -23,7 +23,7 @@ Source is authoritative when documentation and behavior disagree.
 | `core/debug-preferences.js` | Capacity and opt-in auto-start preferences |
 | `core/settings-panel.js` | Shared drawers, icons, version label and placement above IG |
 | `modules/debug/index.js` | Recorder controls, status, filters and download |
-| `modules/ui/index.js` | LunarUI settings placeholder |
+| `modules/ui/index.js` | Optional Moonlight Blue layer, preferences and cleanup |
 | `integrations/immersivegroups.js` | Host/IG subscriptions, snapshots, native background observation |
 | `integrations/activity.js` | UI action mapping, configuration ownership/diffs and activity windows |
 | `integrations/generation.js` | Generation coverage, dry runs and conservative lifecycle observations |
@@ -60,8 +60,8 @@ the export contains no information about its user.
 ## Recording lifecycle and integration rules
 
 Recording is off initially unless the user enabled auto-start. Records stay in
-memory and are downloaded only on explicit export. Only validated capacity and
-auto-start preferences are saved through SillyTavern. Do not add automatic
+memory and are downloaded only on explicit export. Validated capacity,
+auto-start and recolor preferences are saved through SillyTavern. Do not add automatic
 uploads, recording persistence, replay or periodic notifications by default.
 
 The main buffer defaults to 10,000 records; the UI permits 1,000–50,000. The
@@ -103,7 +103,7 @@ and report clearly when changes span both repositories.
 ## Development and validation
 
 Keep edits focused and preserve saved settings, native chat behavior and existing
-IG APIs/events. Scope CSS to LunarCore, use theme variables, and keep nested
+IG APIs/events. Scope CSS to LunarCore or an explicit opt-in theme class, use theme variables, and keep nested
 drawers keyboard-accessible. Update versions only within the user's requested
 scope; when changed, synchronize `core/version.js`, manifest and package metadata.
 Recording schema, producer protocol and extension release are separate versions.

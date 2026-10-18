@@ -1,4 +1,4 @@
-# LunarCore v0.0.5 — Modular settings preview
+# LunarCore v0.0.6 — Moonlight Blue preview
 
 LunarCore is a SillyTavern UI extension. Its first module is LunarDebug, an
 optional recorder for real-use diagnostic metadata, especially ImmersiveGroups.
@@ -19,8 +19,13 @@ Exports include the whole buffer regardless of the panel's event filter.
 
 The LunarCore drawer contains a small version label and separate LunarUI and
 LunarDebug drawers. Blue moon, laptop and butterfly icons identify them. LunarUI
-is a placeholder for upcoming customization controls. Closing either drawer
+offers an optional **Moonlight Blue** recolor. Closing either drawer
 does not stop recording; attention counts remain visible on the LunarCore header.
+
+Open **LunarCore → LunarUI → Moonlight Blue** to try cool blue panels, accents
+and a subtle glow. It starts off; your choice is saved. Disabling it immediately
+restores the current native theme. The recolor is a CSS layer, not a rewrite of
+SillyTavern's theme settings; layouts, images and background selection are untouched.
 
 ## Background use
 

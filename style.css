@@ -36,3 +36,37 @@
 .lunar-core > .lunar-drawer-content > .lunar-drawer { margin-block: 0.4em; }
 .lunar-ui p { font-size: 0.9em; opacity: 0.8; }
 .lunar-attention { font-size: 0.8em; color: #e3b75a; }
+
+.lunar-theme-toggle { display: flex; align-items: center; gap: 0.5em; margin-block: 0.6em; }
+.lunar-moonlight-preview {
+    display: flex; align-items: center; gap: 0.6em; margin-block: 0.75em;
+    padding: 0.7em; color: #e4f0ff; border: 1px solid #436681; border-radius: 8px;
+    background: linear-gradient(120deg, #193a59, #0b1729 65%);
+    box-shadow: 0 0 10px rgba(100,181,246,0.12);
+}
+.lunar-preview-moon { font-size: 1.5em; color: #9dd5ff; text-shadow: 0 0 7px rgba(100,181,246,0.5); }
+.lunar-preview-swatch { width: 1em; height: 1em; margin-inline-start: auto; border-radius: 50%; background: #88caff; box-shadow: 0 0 8px rgba(100,181,246,0.5); }
+
+/* An opt-in CSS layer: never rewrite or snapshot the user's native theme.
+   Removing this class restores the current underlying theme immediately. */
+body.lunar-moonlight {
+    --SmartThemeBodyColor: #e4f0ff;
+    --SmartThemeEmColor: #afcbe8;
+    --SmartThemeQuoteColor: #9dd5ff;
+    --SmartThemeBorderColor: #436681;
+    --SmartThemeBlurTintColor: rgba(9,19,35,0.94);
+    --SmartThemeChatTintColor: rgba(13,28,48,0.84);
+}
+body.lunar-moonlight :is(#extensions_settings, #extensions_settings2) .inline-drawer-toggle.inline-drawer-header,
+body.lunar-moonlight .standoutHeader {
+    background-image: linear-gradient(348deg, rgba(157,213,255,0.2) 2%, rgba(39,73,108,0.32) 12%, rgba(6,16,30,0.92) 92%, rgba(100,181,246,0.6) 100%);
+    border-color: #436681;
+    box-shadow: 0 0 8px rgba(100,181,246,0.12);
+}
+body.lunar-moonlight :is(.drawer-content, .popup) { box-shadow: 0 0 14px rgba(100,181,246,0.14); }
+body.lunar-moonlight :is(.text_pole, select, .menu_button) { border-color: #436681; }
+body.lunar-moonlight :is(.menu_button:hover, .text_pole:focus-visible, select:focus-visible, button:focus-visible) {
+    outline-color: #9dd5ff;
+    box-shadow: 0 0 7px rgba(100,181,246,0.3);
+}
+body.lunar-moonlight input[type="checkbox"], body.lunar-moonlight input[type="range"] { accent-color: #88caff; }

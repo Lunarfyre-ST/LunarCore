@@ -91,3 +91,7 @@ layout, viewport, motion preference or scene disable changes; stale results;
 unknown when the producer has no explicit reason. Similar timing alone never
 sets a reason. Product setting/state names are allowed; raw text and private
 identifiers are still rejected at the sink.
+
+`ui.theme` records the fixed preset identifier `moonlight_blue` and a boolean
+`enabled` at recording start and on toggle changes. It contains no native theme
+dump or custom CSS. This additive metadata keeps export schema 4/protocol 1.

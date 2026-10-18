@@ -3,7 +3,7 @@
 Moves extension settings under a LunarCore parent drawer with a blue moon icon
 and small LunarCore 0.0.5 version label. Nested LunarUI and LunarDebug drawers use
 blue laptop and butterfly icons with a subtle glow. Headers match the themed
-extension bars. LunarUI is a placeholder; LunarDebug retains
+extension bars. LunarUI provides its own settings drawer; LunarDebug retains
 the existing recorder controls and background operation.
 
 LunarCore is placed immediately above ImmersiveGroups in its settings column,

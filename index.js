@@ -16,7 +16,7 @@ if (!globalThis[runtimeKey]) {
         const recorder = createRecorder({ capacity: readDebugPreferences(context).capacity });
         globalThis[sinkKey] = recorder.api;
         const panel = mountSettingsPanel(target);
-        const unmountUI = mountUI(panel.content);
+        const unmountUI = mountUI(panel.content, context, { onChange: fields => recorder.api.emit('ui.theme', fields) });
         const unmountDebug = mountDebug(recorder, context, panel.content, { onStatus: panel.updateStatus });
         runtime.dispose = () => { unmountDebug(); unmountUI(); panel.dispose(); if (globalThis[sinkKey] === recorder.api) delete globalThis[sinkKey]; delete globalThis[runtimeKey]; };
     };
