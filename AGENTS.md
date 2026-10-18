@@ -11,6 +11,28 @@ for the producer/export contract, and
 [docs/READING_RECORDINGS.md](docs/READING_RECORDINGS.md) before analyzing exports.
 Source is authoritative when documentation and behavior disagree.
 
+## Development ownership
+
+The user has assigned LunarDebug development and maintenance to the
+ImmersiveGroups worker. Work in this chat focuses on LunarUI and future LunarCore
+features. This is a responsibility split, not a move of the recorder source into
+the ImmersiveGroups repository; LunarDebug remains a LunarCore module.
+
+- Do not independently expand, refactor or maintain recorder behavior here
+  unless the user explicitly assigns that work back to this chat.
+- Treat recorder internals, collection/analysis schemas, generation tracking and
+  IG diagnostic hooks as owned by the ImmersiveGroups worker.
+- Shared bootstrap, settings drawers, styles and metadata may change for LunarUI
+  or other authorized features. Preserve LunarDebug behavior, preferences,
+  optional integration contracts and cleanup; run relevant regression checks.
+- UI work may emit existing safe diagnostic events. Coordinate changes to the
+  recorder's schema or producer contract through the user/owning worker rather
+  than expanding them incidentally.
+- Check the current working tree before edits and preserve the other worker's
+  changes. Do not overwrite its source or documentation during unrelated work.
+- This ownership note is not authorization to send messages to another chat;
+  obtain direct user authorization before messaging the worker.
+
 ## Project structure
 
 | Path | Responsibility |
