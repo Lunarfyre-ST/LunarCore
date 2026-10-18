@@ -32,9 +32,33 @@ try {
     const page = await browser.newPage({ viewport: { width: 1000, height: 850 }, reducedMotion: 'no-preference' });
     const errors = []; page.on('pageerror', error => errors.push(error.message));
     await page.goto(`http://127.0.0.1:${server.address().port}`);
+    await page.evaluate(() => {
+        ctx.extensionSettings = { ImmersiveGroups: { outfitFadeIn: 200, layoutMode: 'desktop',
+            sceneAutomation: { enabled: true, apiUrl: 'PRIVATE', instructionsAll: 'PRIVATE', apiTransport: 'main' } } };
+        const shell = document.createElement('div'); shell.className = 'ig-settings-shell';
+        shell.innerHTML = '<button id="ig-tab-animations">PRIVATE TAB TEXT</button><button data-scene-run>PRIVATE BUTTON TEXT</button><input type="range" data-animation-setting="outfitFadeIn"><input type="text" data-scene-setting="apiUrl">';
+        document.body.append(shell);
+        shell.querySelector('[data-scene-run]').addEventListener('click', () => {
+            const op = globalThis[Symbol.for('LunarDebug.sink')].begin('automation.api', { transport: 'main' });
+            setTimeout(() => op.finish({ outcome: 'completed' }), 5);
+        });
+        shell.querySelector('[data-animation-setting]').addEventListener('input', event => {
+            ctx.extensionSettings.ImmersiveGroups.outfitFadeIn = Number(event.target.value);
+            window.dispatchEvent(new Event('ig-layout-change'));
+        });
+    });
     const toggle = page.locator('[data-record]');
     await toggle.waitFor(); assert.equal(await toggle.isChecked(), false);
     await toggle.check();
+    await page.locator('#ig-tab-animations').click();
+    await page.locator('[data-scene-run]').click();
+    await page.evaluate(() => {
+        const input = document.querySelector('[data-animation-setting]'); input.max = 3000;
+        for (let i = 1; i <= 100; i++) { input.value = 200 + i; input.dispatchEvent(new Event('input', { bubbles: true })); }
+        document.querySelector('.ig-settings-shell').dispatchEvent(new Event('scroll'));
+        const privateInput = document.querySelector('[data-scene-setting="apiUrl"]');
+        privateInput.value = 'PRIVATE_URL'; privateInput.dispatchEvent(new Event('input', { bubbles: true }));
+    });
     await page.evaluate(async prefix => {
         const sink = globalThis[Symbol.for('LunarDebug.sink')];
         window.PRIVATE = 'PRIVATE_NAME_CREDENTIAL_CHAT_PATH';
@@ -56,12 +80,23 @@ try {
     const download = await downloadPromise;
     const json = JSON.parse(await readFile(await download.path(), 'utf8'));
     assert.equal(JSON.stringify(json).includes('PRIVATE'), false);
+    assert.equal(json.schemaVersion, 2);
+    assert.equal(json.versions.lunarCore, '0.0.2');
+    assert.ok(json.events.some(row => row.event === 'ig.setting_snapshot' && row.setting === 'outfitFadeIn' && row.value === 200));
+    assert.ok(json.events.some(row => row.event === 'ig.setting_change' && row.before === 200 && row.after === 300 && row.count === 100));
+    assert.ok(json.events.some(row => row.event === 'ig.layout' && row.count === 100));
+    assert.ok(json.events.some(row => row.event === 'ui.scroll' && row.area === 'settings'));
+    const action = json.events.find(row => row.action === 'automation.analyze');
+    assert.ok(action);
+    assert.ok(json.events.some(row => row.event === 'automation.api' && row.phase === 'end' && row.causeOperation === action.operation));
     assert.ok(json.events.some(row => row.event === 'animation.swap' && row.outcome === 'completed'));
     assert.ok(json.events.some(row => row.event === 'animation.swap' && row.outcome === 'cancelled'));
     assert.ok(json.events.some(row => row.event === 'host.chat_changed'));
     assert.ok(json.events.some(row => row.event === 'background.observed'));
     await toggle.uncheck();
     assert.equal(await page.evaluate(() => handlers.chat.length), 0);
+    await page.evaluate(() => { delete ImmersiveGroups.diagnosticsProtocol; });
+    await page.waitForFunction(() => document.querySelector('[data-integration]').classList.contains('lunar-debug-warning'));
     await toggle.check();
     assert.equal(await page.evaluate(() => handlers.chat.length), 1);
     await page.locator('[data-clear]').click();
@@ -87,5 +122,5 @@ try {
         return true;
     }, prefix), true);
     assert.deepEqual(errors, []);
-    console.log('Browser regressions passed: controls, export privacy, buffer rollover, listener cleanup, real IG animation hooks and consumer isolation.');
+    console.log('Browser regressions passed: controls, export privacy, configuration diffs, activity summaries, action correlation, legacy warning, buffer rollover, listener cleanup, real IG animation hooks and consumer isolation.');
 } finally { await browser?.close(); await new Promise(resolve => server.close(resolve)); }

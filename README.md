@@ -1,4 +1,4 @@
-# LunarCore v0.0.1 — LunarDebug preview
+# LunarCore v0.0.2 — LunarDebug preview
 
 LunarCore is a SillyTavern UI extension. Its first module is LunarDebug, an
 optional recorder for real-use diagnostic metadata, especially ImmersiveGroups.
@@ -15,6 +15,14 @@ Exports include the whole buffer regardless of the panel's event filter.
 
 ## Recorded metadata
 
+- Named menu/button actions using fixed product identifiers, never visible text.
+- Initial allowlisted configuration and before/after setting changes, including
+  separate desktop/mobile layout values, animation settings, and safe automation options.
+- Layout notifications, repeated setting changes and menu scrolling summarized
+  in 500 ms windows, with counts and activity duration. Export and Stop flush
+  pending summaries; Clear discards them. Duration describes the activity window,
+  not rendering cost or frame performance.
+
 - SillyTavern chat, generation, group, message edit/swipe/delete and settings event occurrences.
 - ImmersiveGroups readiness, layout, automation, background catalog and binding events;
   native background surface changes even when fades are disabled.
@@ -25,7 +33,10 @@ Exports include the whole buffer regardless of the panel's event filter.
 Detailed hooks are currently local changes in the sibling ImmersiveGroups repo;
 both working copies must be used in the test SillyTavern installation. Existing
 ImmersiveGroups releases provide basic events only. The panel reports which
-mode is available. ImmersiveGroups remains usable without LunarCore.
+mode is available. UI/configuration recording also works with older versions;
+the panel highlights missing execution hooks. ImmersiveGroups remains usable
+without LunarCore. Updating LunarCore alone does not add producer hooks to an
+installed ImmersiveGroups release.
 
 ## Privacy and limits
 

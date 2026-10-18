@@ -1,3 +1,5 @@
+import { createActivity, createConfigurationTracker, connectActivity } from './activity.js';
+
 const hostEvents = {
     CHAT_CHANGED: 'chat_changed', GROUP_CHAT_CHANGED: 'chat_changed', GROUP_UPDATED: 'group_updated',
     GENERATION_STARTED: 'generation_started', GENERATION_ENDED: 'generation_ended',
@@ -12,14 +14,28 @@ const featureEvents = {
 };
 export function connectImmersiveGroups(api, context, { win = window, doc = document } = {}) {
     const cleanups = [];
+    let connected = true;
+    const activity = createActivity(api);
+    const tracker = createConfigurationTracker(api, activity, () => (context.extensionSettings || context.extension_settings)?.ImmersiveGroups);
     const listen = (target, name, handler) => { target.addEventListener(name, handler); cleanups.push(() => target.removeEventListener(name, handler)); };
     function snapshot() {
         const ig = win.ImmersiveGroups;
         api.emit('integration', { status: !ig ? 'absent' : ig.diagnosticsProtocol === 1 ? 'instrumented' : 'legacy' });
         if (ig?.getStatus) { try { api.emit('integration', { status: ig.getStatus().status }); } catch { api.emit('integration', { status: 'failed' }); } }
+        tracker.scan(true);
+        const state = (context.extensionSettings || context.extension_settings)?.ImmersiveGroups;
+        const layout = state?.layoutMode === 'mobile' || (state?.layoutMode !== 'desktop' && win.innerWidth <= (Number(state?.mobileLayoutWidth) || 1000)) ? 'mobile' : 'desktop';
+        api.emit('ig.configuration', { layout, reducedMotion: Boolean(win.matchMedia?.('(prefers-reduced-motion: reduce)').matches) });
     }
     listen(doc, 'immersivegroups:ready', snapshot);
-    for (const [name, suffix] of Object.entries(featureEvents)) listen(win, name, () => api.emit(`ig.${suffix}`));
+    for (const [name, suffix] of Object.entries(featureEvents)) listen(win, name, () => {
+        tracker.scan();
+        if (suffix === 'layout' || suffix === 'editor_layout') activity.add(`ig.${suffix}`);
+        else api.emit(`ig.${suffix}`);
+    });
+    cleanups.push(connectActivity(api, activity, tracker, doc));
+    const timer = setInterval(() => { if (connected) { tracker.scan(); activity.flush(); } }, 500);
+    cleanups.push(() => clearInterval(timer));
     // The CSS URL is compared locally and never enters the recorder. This
     // observes native background changes even when animations are disabled.
     if (win.MutationObserver && doc.body) {
@@ -46,10 +62,17 @@ export function connectImmersiveGroups(api, context, { win = window, doc = docum
     const remove = source?.removeListener || source?.off;
     if (source?.on && remove) for (const [name, suffix] of Object.entries(hostEvents)) {
         if (!types[name]) continue;
-        const handler = () => api.emit(`host.${suffix}`);
+        const handler = () => { if (suffix === 'settings_updated') tracker.scan(); api.emit(`host.${suffix}`); };
         source.on(types[name], handler);
         cleanups.push(() => remove.call(source, types[name], handler));
     }
     snapshot();
-    return () => { for (const cleanup of cleanups.reverse()) cleanup(); };
+    const dispose = (discard = false) => {
+        if (!connected) return;
+        connected = false;
+        for (const cleanup of cleanups.reverse()) cleanup();
+        if (discard) activity.discard(); else activity.flush();
+    };
+    dispose.flush = () => { if (connected) { tracker.scan(); activity.flush(); } };
+    return dispose;
 }

@@ -1,4 +1,5 @@
 .lunar-debug p { font-size: 0.9em; opacity: 0.85; }
+.lunar-debug .lunar-debug-warning { opacity: 1; border-inline-start: 3px solid #e3b75a; padding-inline-start: 0.6em; }
 .lunar-debug label { display: flex; align-items: center; gap: 0.5em; margin-block: 0.6em; }
 .lunar-debug-actions { display: flex; flex-wrap: wrap; gap: 0.5em; }
 .lunar-debug pre { max-height: 20rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.75em; user-select: text; }
