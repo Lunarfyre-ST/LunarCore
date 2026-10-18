@@ -109,4 +109,6 @@ the sibling ImmersiveGroups source; override it with `IG_SOURCE_ROOT` if needed.
 Set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to an installed Chrome executable
 when Playwright's bundled Chromium is unavailable.
 
-See [the protocol](docs/diagnostics.md) for integration details.
+See [the recording-reading guide](docs/READING_RECORDINGS.md) for interpreting
+exports, [the protocol](docs/diagnostics.md) for integration details, and
+[AGENTS.md](AGENTS.md) for project structure and contributor/agent guidance.
