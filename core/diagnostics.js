@@ -2,6 +2,7 @@
 // filenames, hashes, error messages, prompt bodies, or arbitrary nested data.
 import { SETTINGS, ACTIONS, settingValue } from './settings-schema.js';
 export const EVENTS = Object.freeze([
+    'runtime.error', 'runtime.unhandled_rejection',
     'ui.action', 'ui.scroll', 'ig.setting_snapshot', 'ig.setting_change', 'ig.configuration',
     'recorder', 'integration', 'outfit.change', 'background.select',
     'background.automatic', 'background.observed', 'animation.swap', 'animation.background',
@@ -41,23 +42,61 @@ function safeFields(input) {
     return result;
 }
 const safeVersion = value => typeof value === 'string' && /^\d{1,4}\.\d{1,4}\.\d{1,4}$/.test(value) ? value : null;
+export const needsAttention = record => record.outcome === 'failed' || record.reason === 'error' ||
+    ['failed', 'partial', 'blocked'].includes(record.status) || record.failed > 0 || record.issues > 0;
+const routineEvents = new Set(['context.injection', 'context.history_cleanup', 'ig.layout', 'ig.editor_layout', 'ui.scroll', 'host.settings_updated']);
 
 export function createRecorder({ capacity = 10000, now = () => performance.now() } = {}) {
     if (!Number.isInteger(capacity) || capacity < 1 || capacity > 50000) throw new RangeError('Invalid capacity');
     let active = false, session = 0, origin = 0, serial = 0, operation = 0, dropped = 0;
+    let revision = 0, summarized = 0, attentionCount = 0, cancelledCount = 0, attentionDropped = 0;
+    const routine = new Map(), attention = [];
     let actionContext = null;
     const currentCause = () => actionContext && (!actionContext.event || actionContext.event.eventPhase > 0) ? actionContext.id : null;
     let buffer = new Array(capacity), head = 0, size = 0;
     function append(event, phase, data, op, cause = currentCause()) {
         if (!active || !EVENTS.includes(event)) return;
-        const record = { sequence: ++serial, elapsedMs: Math.max(0, Math.round(now() - origin)), event, phase, ...safeFields(data) };
+        const fields = safeFields(data), elapsedMs = Math.max(0, Math.round(now() - origin));
+        const isAttention = needsAttention(fields);
+        if (isAttention) routine.clear();
+        const summarize = phase === 'event' && !isAttention && (routineEvents.has(event) || (event.startsWith('animation.') && fields.outcome === 'skipped' && fields.reason === 'disabled'));
+        if (summarize) {
+            const { count, durationMs, ...identity } = fields;
+            const signature = JSON.stringify(identity), previous = routine.get(event);
+            if (previous?.signature === signature) {
+                previous.record.count = (previous.record.count || 1) + (count || 1);
+                previous.record.lastElapsedMs = elapsedMs;
+                if (durationMs !== undefined) previous.record.durationMs = (previous.record.durationMs || 0) + durationMs;
+                previous.record.phase = 'summary';
+                delete previous.record.causeOperation;
+                summarized++; revision++;
+                return;
+            }
+        }
+        const record = { sequence: ++serial, elapsedMs, event, phase, ...fields };
         if (op !== undefined) record.operation = op;
         if (cause !== null && cause !== op) record.causeOperation = cause;
+        if (summarize) routine.set(event, { signature: JSON.stringify(Object.fromEntries(Object.entries(fields).filter(([key]) => !['count', 'durationMs'].includes(key)))), record });
+        if (isAttention) {
+            attentionCount++;
+            if (attention.length === 200) { attention.shift(); attentionDropped++; }
+            attention.push({ ...record });
+        }
+        if (record.outcome === 'cancelled') cancelledCount++;
         if (size < capacity) buffer[(head + size++) % capacity] = record;
-        else { buffer[head] = record; head = (head + 1) % capacity; dropped++; }
+        else {
+            const evicted = buffer[head];
+            for (const [key, value] of routine) if (value.record === evicted) routine.delete(key);
+            buffer[head] = record; head = (head + 1) % capacity; dropped++;
+        }
+        revision++;
     }
     function entries() { return Array.from({ length: size }, (_, i) => ({ ...buffer[(head + i) % capacity] })); }
-    function clear() { session++; actionContext = null; buffer = new Array(capacity); head = size = serial = operation = dropped = 0; origin = now(); }
+    function clear() {
+        session++; actionContext = null; routine.clear(); attention.length = 0;
+        buffer = new Array(capacity); head = size = serial = operation = dropped = 0;
+        summarized = attentionCount = cancelledCount = attentionDropped = 0; origin = now(); revision++;
+    }
     const api = Object.freeze({
         protocol: 1,
         get enabled() { return active; },
@@ -90,14 +129,23 @@ export function createRecorder({ capacity = 10000, now = () => performance.now()
     });
     return {
         api,
-        start() { if (!active) { session++; if (!serial) origin = now(); active = true; append('recorder', 'event', { enabled: true }); } },
-        stop() { if (active) { append('recorder', 'event', { enabled: false }); active = false; actionContext = null; session++; } },
+        start() { if (!active) { session++; routine.clear(); if (!serial) origin = now(); active = true; append('recorder', 'event', { enabled: true }); } },
+        stop() { if (active) { append('recorder', 'event', { enabled: false }); active = false; routine.clear(); actionContext = null; session++; } },
         clear, entries,
-        stats() { return { active, count: size, dropped, capacity }; },
+        attentionEntries() { return attention.map(record => ({ ...record })); },
+        resize(nextCapacity) {
+            if (!Number.isInteger(nextCapacity) || nextCapacity < 1 || nextCapacity > 50000) throw new RangeError('Invalid capacity');
+            const all = entries(), retained = all.slice(-nextCapacity);
+            dropped += all.length - retained.length; capacity = nextCapacity;
+            buffer = new Array(capacity); head = 0; size = retained.length;
+            retained.forEach((record, index) => { buffer[index] = record; });
+            routine.clear(); revision++;
+        },
+        stats() { return { active, count: size, dropped, capacity, summarized, attentionCount, cancelledCount, attentionRetained: attention.length, attentionDropped, revision }; },
         export(versions = {}) {
-            return { schema: 'lunar-debug-recording', schemaVersion: 2, protocolVersion: 1,
+            return { schema: 'lunar-debug-recording', schemaVersion: 3, protocolVersion: 1,
                 versions: { lunarCore: safeVersion(versions.lunarCore), immersiveGroups: safeVersion(versions.immersiveGroups) },
-                ...this.stats(), events: entries() };
+                ...this.stats(), attentionEvents: attention.map(record => ({ ...record })), events: entries() };
         },
     };
 }

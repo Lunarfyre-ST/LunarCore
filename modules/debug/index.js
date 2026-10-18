@@ -1,15 +1,19 @@
 import { connectImmersiveGroups } from '../../integrations/immersivegroups.js';
+import { readDebugPreferences, saveDebugPreferences } from '../../core/debug-preferences.js';
 
 export function mountDebug(recorder, context, target) {
+    const preferences = readDebugPreferences(context);
     const panel = document.createElement('div');
     panel.className = 'lunar-debug inline-drawer';
-    panel.innerHTML = `<div class="inline-drawer-toggle inline-drawer-header"><b>LunarDebug v0.0.2</b><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div>
+    panel.innerHTML = `<div class="inline-drawer-toggle inline-drawer-header"><b>LunarDebug v0.0.3 <span data-alert></span></b><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div>
         <div class="inline-drawer-content">
         <label><input type="checkbox" data-record> Record diagnostic metadata</label>
-        <p>Recording starts off after every reload. Chat text, prompts, names, filenames, paths and credentials are excluded. Records stay in memory until exported or the page closes.</p>
+        <label>Maximum retained records <input type="number" min="1000" max="50000" step="1000" data-capacity></label>
+        <label><input type="checkbox" data-auto-start> Start recording automatically after reload</label>
+        <p>Repeated routine activity is summarized. The newest 200 attention records are retained separately if the main buffer rolls over. Recordings stay in memory; only these preferences are saved. Chat text, prompts, names, paths and credentials are excluded.</p>
         <p data-status role="status"></p><p data-integration></p>
         <div class="lunar-debug-actions"><button type="button" class="menu_button" data-export>Export JSON</button><button type="button" class="menu_button" data-clear>Clear recording</button></div>
-        <label>Event filter <select data-filter><option value="">All events</option><option value="ui.">UI actions / scrolling</option><option value="ig.setting">Configuration</option><option value="outfit.">Outfits</option><option value="background.">Backgrounds</option><option value="animation.">Animations</option><option value="context.">Context injection</option><option value="automation.">Automation</option><option value="host.">SillyTavern</option><option value="ig.">IG changes</option></select></label>
+        <label>Event filter <select data-filter><option value="">All events</option><option value="attention">Attention records</option><option value="ui.">UI actions / scrolling</option><option value="ig.setting">Configuration</option><option value="outfit.">Outfits</option><option value="background.">Backgrounds</option><option value="animation.">Animations</option><option value="context.">Context injection</option><option value="automation.">Automation</option><option value="host.">SillyTavern</option><option value="ig.">IG changes</option></select></label>
         <pre data-events aria-label="Recent diagnostic events"></pre></div>`;
     target.append(panel);
     const query = selector => panel.querySelector(selector);
@@ -17,15 +21,19 @@ export function mountDebug(recorder, context, target) {
     function attach() { disconnect?.(); disconnect = connectImmersiveGroups(recorder.api, context); }
     function render() {
         const stats = recorder.stats();
-        query('[data-status]').textContent = `${stats.active ? 'Recording' : 'Stopped'} · ${stats.count}/${stats.capacity} events · ${stats.dropped} oldest events discarded`;
+        query('[data-status]').textContent = `${stats.active ? 'Recording' : 'Stopped'} · ${stats.count}/${stats.capacity} records · ${stats.dropped} oldest events discarded · ${stats.summarized} routine repeats summarized · ${stats.attentionCount} attention records · ${stats.cancelledCount} cancellations (not automatically errors)`;
+        query('[data-alert]').textContent = stats.attentionCount ? `· ${stats.attentionCount} attention` : '';
+        query('[data-alert]').classList.toggle('lunar-debug-warning', stats.attentionCount > 0);
         const ig = globalThis.ImmersiveGroups;
         query('[data-integration]').textContent = !ig ? 'ImmersiveGroups not detected.' : ig.diagnosticsProtocol === 1 ? 'ImmersiveGroups: detailed execution hooks available.' : 'Limited coverage: UI/configuration recording is available, but outfit, animation, automation and injection execution traces require the ImmersiveGroups copy with diagnostic hooks. Updating LunarCore alone does not enable those hooks.';
         query('[data-integration]').classList.toggle('lunar-debug-warning', Boolean(ig && ig.diagnosticsProtocol !== 1));
         query('[data-export]').disabled = stats.count === 0;
-        const filter = query('[data-filter]').value, signature = `${stats.count}:${stats.dropped}:${stats.active}:${filter}`;
+        const filter = query('[data-filter]').value, signature = `${stats.revision}:${stats.active}:${filter}`;
         if (signature === lastSignature) return;
+        if (!query('[data-events]').getClientRects().length) return;
         lastSignature = signature;
-        query('[data-events]').textContent = recorder.entries().filter(row => !filter || row.event.startsWith(filter)).slice(-60).map(row => JSON.stringify(row)).join('\n');
+        const rows = filter === 'attention' ? recorder.attentionEntries() : recorder.entries().filter(row => !filter || row.event.startsWith(filter));
+        query('[data-events]').textContent = rows.slice(-60).map(row => JSON.stringify(row)).join('\n');
     }
     query('[data-record]').addEventListener('change', event => {
         if (event.target.checked) { recorder.start(); attach(); }
@@ -34,14 +42,28 @@ export function mountDebug(recorder, context, target) {
     });
     query('[data-clear]').addEventListener('click', () => { disconnect?.(true); disconnect = null; recorder.clear(); lastSignature = ''; if (recorder.stats().active) attach(); render(); });
     query('[data-filter]').addEventListener('change', render);
+    query('[data-capacity]').value = preferences.capacity;
+    query('[data-capacity]').step = '1';
+    query('[data-auto-start]').checked = preferences.autoStart;
+    query('[data-capacity]').addEventListener('change', event => {
+        const value = Number(event.target.value);
+        if (!Number.isInteger(value) || value < 1000 || value > 50000) {
+            event.target.setCustomValidity('Choose a whole number from 1,000 to 50,000.'); event.target.reportValidity(); return;
+        }
+        event.target.setCustomValidity(''); recorder.resize(value); preferences.capacity = value;
+        saveDebugPreferences(context, preferences); render();
+    });
+    query('[data-capacity]').addEventListener('input', event => event.target.setCustomValidity(''));
+    query('[data-auto-start]').addEventListener('change', event => { preferences.autoStart = event.target.checked; saveDebugPreferences(context, preferences); });
     query('[data-export]').addEventListener('click', () => {
         disconnect?.flush();
-        const data = recorder.export({ lunarCore: '0.0.2', immersiveGroups: globalThis.ImmersiveGroups?.version });
+        const data = recorder.export({ lunarCore: '0.0.3', immersiveGroups: globalThis.ImmersiveGroups?.version });
         const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
         const link = document.createElement('a'); link.href = url; link.download = 'lunar-debug-recording.json';
         document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
     });
     const timer = setInterval(render, 500);
+    if (preferences.autoStart) { query('[data-record]').checked = true; recorder.start(); attach(); }
     render();
     return () => { disconnect?.(); recorder.stop(); clearInterval(timer); panel.remove(); };
 }

@@ -1,4 +1,4 @@
-# LunarCore v0.0.2 — LunarDebug preview
+# LunarCore v0.0.3 — LunarDebug preview
 
 LunarCore is a SillyTavern UI extension. Its first module is LunarDebug, an
 optional recorder for real-use diagnostic metadata, especially ImmersiveGroups.
@@ -8,10 +8,36 @@ in your development installation's third-party extension directory. No build
 or npm install is required for the extension itself.
 
 Open **Extensions → LunarDebug**, enable **Record diagnostic metadata**, reproduce
-the behavior, stop recording, then choose **Export JSON**. Recordings are off
-after every reload. Stop retains the buffer; Clear erases it; page reload loses
-it. At most 10,000 records are retained, with discarded record counts in exports.
+the behavior, stop recording, then choose **Export JSON**. Recording starts off
+unless you enable **Start recording automatically after reload**. Stop retains
+the buffer; Clear erases it; page reload loses it. The default limit is 10,000
+records, adjustable from 1,000 to 50,000 while recording. Shrinking keeps the
+newest records and counts removed ones as discarded. This is a record count,
+not a byte or file-size limit. Capacity and auto-start preferences are saved
+through SillyTavern; recordings themselves are never persisted automatically.
 Exports include the whole buffer regardless of the panel's event filter.
+
+## Background use
+
+Enable recording and optionally auto-start, then leave the panel closed while
+using SillyTavern. Routine context injections, history cleanups, layout/scroll
+activity, settings-update notifications and disabled-animation skips with
+identical safe metadata are summarized even across interleaved events. Changes
+and execution traces stay visible. This compares metadata, not private prompt
+content; identical lengths do not prove identical text. A failure ends the
+current summaries so activity before/after it stays separate.
+
+The header shows observed attention records (failed outcomes, producer-reported
+issues, and failed/partial/blocked integration status). Cancellations are counted
+separately and are not automatically errors. The recorder also observes browser
+errors and unhandled rejections, without messages, stacks, URLs or rejection
+values; these can come from any extension. Caught failures with no producer hook
+remain outside its coverage. There are no periodic popups or network uploads.
+
+The newest 200 attention records are kept in a separate bounded history even
+when the main buffer rolls over. Use **Attention records** in the filter to
+inspect them. Both buffers and counters are reset by Clear. Exports include
+both buffers and counts of discarded attention records.
 
 ## Recorded metadata
 

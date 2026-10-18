@@ -14,7 +14,12 @@ const fixture = `<!doctype html><html><head><link rel="stylesheet" href="/style.
 const server = http.createServer(async (req, res) => {
     try {
         const url = new URL(req.url, 'http://fixture'), pathname = decodeURIComponent(url.pathname);
-        if (pathname === '/') { res.setHeader('content-type', 'text/html'); res.end(fixture); return; }
+        if (pathname === '/') {
+            res.setHeader('content-type', 'text/html');
+            const content = fixture.replace('window.ctx={', 'window.ctx={extensionSettings:{},');
+            res.end(url.searchParams.has('autostart') ? content.replace('window.SillyTavern=', 'ctx.extensionSettings={LunarCore:{debug:{capacity:2000,autoStart:true}}};window.SillyTavern=') : content);
+            return;
+        }
         res.setHeader('content-type', pathname.endsWith('.css') ? 'text/css' : 'text/javascript');
         if (pathname === '/scripts/extensions.js') { res.end(`export const extension_settings={ImmersiveGroups:{enableVN_UI:true,outfitFadeEnabled:true,outfitFadeMode:'cross',outfitFadeIn:20,outfitFadeOut:20}};export const getContext=()=>window.ctx;`); return; }
         if (pathname === prefix + 'constants.js') { res.end(`export const extensionName='ImmersiveGroups';export const defaultSettings={};`); return; }
@@ -80,8 +85,8 @@ try {
     const download = await downloadPromise;
     const json = JSON.parse(await readFile(await download.path(), 'utf8'));
     assert.equal(JSON.stringify(json).includes('PRIVATE'), false);
-    assert.equal(json.schemaVersion, 2);
-    assert.equal(json.versions.lunarCore, '0.0.2');
+    assert.equal(json.schemaVersion, 3);
+    assert.equal(json.versions.lunarCore, '0.0.3');
     assert.ok(json.events.some(row => row.event === 'ig.setting_snapshot' && row.setting === 'outfitFadeIn' && row.value === 200));
     assert.ok(json.events.some(row => row.event === 'ig.setting_change' && row.before === 200 && row.after === 300 && row.count === 100));
     assert.ok(json.events.some(row => row.event === 'ig.layout' && row.count === 100));
@@ -95,6 +100,8 @@ try {
     assert.ok(json.events.some(row => row.event === 'background.observed'));
     await toggle.uncheck();
     assert.equal(await page.evaluate(() => handlers.chat.length), 0);
+    await page.locator('[data-capacity]').fill('1000'); await page.locator('[data-capacity]').press('Tab');
+    assert.equal(await page.evaluate(() => ctx.extensionSettings.LunarCore.debug.capacity), 1000);
     await page.evaluate(() => { delete ImmersiveGroups.diagnosticsProtocol; });
     await page.waitForFunction(() => document.querySelector('[data-integration]').classList.contains('lunar-debug-warning'));
     await toggle.check();
@@ -103,16 +110,30 @@ try {
     await page.locator('[data-filter]').selectOption('animation.');
     await page.evaluate(() => {
         const sink = globalThis[Symbol.for('LunarDebug.sink')];
-        for (let i = 0; i < 10020; i++) sink.emit('context.injection', { promptCharacters: i, enabled: true });
+        window.dispatchEvent(new ErrorEvent('error', { message: 'PRIVATE', filename: 'PRIVATE' }));
+        window.dispatchEvent(new PromiseRejectionEvent('unhandledrejection', { promise: Promise.resolve(), reason: 'PRIVATE' }));
+        for (let i = 0; i < 1020; i++) sink.emit('context.injection', { promptCharacters: i, enabled: true });
     });
     await page.waitForFunction(() => document.querySelector('[data-status]').textContent.includes('oldest events discarded') && !document.querySelector('[data-status]').textContent.includes('· 0 oldest'));
     await page.locator('[data-filter]').selectOption('context.');
     await page.waitForFunction(() => document.querySelector('[data-events]').textContent.includes('context.injection'));
+    await page.locator('[data-filter]').selectOption('attention');
+    await page.waitForFunction(() => document.querySelector('[data-events]').textContent.includes('runtime.error'));
+    assert.equal(await page.locator('[data-events]').textContent().then(text => text.includes('PRIVATE')), false);
+    assert.ok((await page.locator('[data-alert]').textContent()).includes('2 attention'));
     await mkdir(path.join(root, 'tests/artifacts'), { recursive: true });
     await page.screenshot({ path: path.join(root, 'tests/artifacts/lunar-debug.png') });
     await toggle.uncheck(); await page.locator('[data-clear]').click();
     assert.equal(await page.locator('[data-export]').isDisabled(), true);
     await page.reload(); assert.equal(await toggle.isChecked(), false);
+    await page.locator('[data-auto-start]').check();
+    assert.equal(await page.evaluate(() => ctx.extensionSettings.LunarCore.debug.autoStart), true);
+    // Simulate the host restoring preferences before extension initialization.
+    await page.goto(`http://127.0.0.1:${server.address().port}/?autostart`);
+    assert.equal(await toggle.isChecked(), true);
+    assert.equal(await page.locator('[data-capacity]').inputValue(), '2000');
+    assert.equal(await page.locator('[data-auto-start]').isChecked(), true);
+    await toggle.uncheck();
     // Broken or absent consumers must not break the optional producer bridge.
     assert.equal(await page.evaluate(async prefix => {
         const helper = await import(prefix + 'modules/diagnostics.js');
@@ -122,5 +143,5 @@ try {
         return true;
     }, prefix), true);
     assert.deepEqual(errors, []);
-    console.log('Browser regressions passed: controls, export privacy, configuration diffs, activity summaries, action correlation, legacy warning, buffer rollover, listener cleanup, real IG animation hooks and consumer isolation.');
+    console.log('Browser regressions passed: privacy, summaries, adjustable limits, retained attention history, runtime failure detection, saved preferences, auto-start, action correlation, legacy warning, listener cleanup and real IG animation hooks.');
 } finally { await browser?.close(); await new Promise(resolve => server.close(resolve)); }

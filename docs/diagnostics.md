@@ -36,3 +36,27 @@ Summary duration measures first-to-last activity, not execution cost.
 The recorder observes host events without reading their arguments. Detailed IG
 events come from optional producer hooks rather than interception of fetch,
 console, prompt functions or DOM text. It does not take scene/settings dumps.
+
+## Schema 3 / v0.0.3
+
+Routine instantaneous records with identical safe metadata may become `phase:
+summary`, retaining their first `elapsedMs` and updating `lastElapsedMs` and
+`count`. Their sequence remains the first occurrence's sequence. Summaries can
+span intervening events and do not imply continuous execution or identical
+private content.
+When producers supply batch `durationMs`, summaries sum those supplied durations;
+`lastElapsedMs - elapsedMs` describes the span between observed records. Neither
+measures rendering cost. A summary drops its single-action cause link. Changed metadata,
+failures, Stop, Clear, and eviction break the relevant summary. Resize also resets
+summary references. Producer operation start/detail/end records stay distinct.
+
+`summarized` counts coalesced notifications; `dropped` counts evicted records.
+`attentionCount` counts attention records observed since Clear (not unique bugs).
+`cancelledCount` counts cancellations separately. `attentionEvents` retains the
+newest 200 attention records; `attentionDropped` tracks its evictions. A record
+may appear in both arrays with the same sequence; deduplicate by sequence when
+combining them. Runtime-error records intentionally do not identify their source.
+
+Capacity is bounded to 50,000 main records plus 200 attention records. UI minimum
+is 1,000. Resize preserves active operations and newest records. No recording
+data is saved automatically, including when auto-start is enabled.

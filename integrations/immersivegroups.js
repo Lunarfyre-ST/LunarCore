@@ -28,6 +28,10 @@ export function connectImmersiveGroups(api, context, { win = window, doc = docum
         api.emit('ig.configuration', { layout, reducedMotion: Boolean(win.matchMedia?.('(prefers-reduced-motion: reduce)').matches) });
     }
     listen(doc, 'immersivegroups:ready', snapshot);
+    // Detect browser-reported failures without inspecting messages, stacks,
+    // URLs, rejection values, or claiming which extension caused them.
+    listen(win, 'error', () => api.emit('runtime.error', { outcome: 'failed', reason: 'error' }));
+    listen(win, 'unhandledrejection', () => api.emit('runtime.unhandled_rejection', { outcome: 'failed', reason: 'error' }));
     for (const [name, suffix] of Object.entries(featureEvents)) listen(win, name, () => {
         tracker.scan();
         if (suffix === 'layout' || suffix === 'editor_layout') activity.add(`ig.${suffix}`);
