@@ -7,7 +7,7 @@ export function createActivity(api, { now = () => performance.now() } = {}) {
         add(event, fields = {}, key = event) {
             const time = now(), existing = pending.get(key);
             if (existing) {
-                existing.fields = { ...existing.fields, ...fields, before: existing.fields.before };
+                existing.fields = { ...existing.fields, ...fields, before: existing.fields.before, beforeOwnership: existing.fields.beforeOwnership };
                 existing.count++; existing.last = time;
             } else pending.set(key, { event, fields: { ...fields }, count: 1, first: time, last: time });
         },
@@ -31,13 +31,16 @@ export function createConfigurationTracker(api, activity, settings) {
             for (const profile of profiles) {
                 const object = scene ? state.sceneAutomation : profile === 'mobile' ? state.mobileLayoutSettings : state;
                 // Mobile inherits desktop values when there is no override.
-                const raw = profile === 'mobile' && !Object.hasOwn(object || {}, local) ? state[local] : object?.[local];
+                const inherited = profile === 'mobile' && !Object.hasOwn(object || {}, local);
+                const ownership = profile === 'shared' ? 'shared' : inherited ? 'inherited' : 'explicit';
+                const raw = inherited ? state[local] : object?.[local];
                 const value = settingValue(key, raw);
                 if (value === undefined) continue;
                 const identity = `${profile}:${key}`;
-                next.set(identity, value);
-                if (initial || !previous.has(identity)) api.emit('ig.setting_snapshot', { setting: key, profile, value });
-                else if (previous.get(identity) !== value) activity.add('ig.setting_change', { setting: key, profile, before: previous.get(identity), after: value }, identity);
+                next.set(identity, { value, ownership });
+                const prior = previous.get(identity);
+                if (initial || !prior) api.emit('ig.setting_snapshot', { setting: key, profile, value, ownership });
+                else if (prior.value !== value || prior.ownership !== ownership) activity.add('ig.setting_change', { setting: key, profile, before: prior.value, after: value, ownership, beforeOwnership: prior.ownership }, identity);
             }
         }
         previous = next;
@@ -54,6 +57,8 @@ const actions = [
     ['[data-bg-model-lock]', 'background.lock'], ['[data-media-close]', 'background_picker.close'],
     ['.ig-outfit-rows [role="option"]', 'outfit.select'], ['.prome-stage-outfit', 'outfit_picker.toggle'],
     ['.bg_example', 'background.select'],
+    ['.ig-background-popover [data-bg-results] .ig-media-card, .ig-background-dialog [data-bg-use]', 'background.select'],
+    ['[data-bg-previous]', 'background.previous'], ['[data-bg-next]', 'background.next'],
 ];
 export function connectActivity(api, activity, tracker, doc) {
     let connected = true;

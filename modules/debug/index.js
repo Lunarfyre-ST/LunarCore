@@ -5,12 +5,12 @@ export function mountDebug(recorder, context, target) {
     const preferences = readDebugPreferences(context);
     const panel = document.createElement('div');
     panel.className = 'lunar-debug inline-drawer';
-    panel.innerHTML = `<div class="inline-drawer-toggle inline-drawer-header"><b>LunarDebug v0.0.3 <span data-alert></span></b><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div>
+    panel.innerHTML = `<div class="inline-drawer-toggle inline-drawer-header"><b>LunarDebug v0.0.4 <span data-alert></span></b><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div>
         <div class="inline-drawer-content">
         <label><input type="checkbox" data-record> Record diagnostic metadata</label>
         <label>Maximum retained records <input type="number" min="1000" max="50000" step="1000" data-capacity></label>
         <label><input type="checkbox" data-auto-start> Start recording automatically after reload</label>
-        <p>Repeated routine activity is summarized. The newest 200 attention records are retained separately if the main buffer rolls over. Recordings stay in memory; only these preferences are saved. Chat text, prompts, names, paths and credentials are excluded.</p>
+        <p>Repeated routine activity is summarized. The newest 200 attention records survive main-buffer rollover. Recordings stay in memory; only these preferences are saved. Setting names, configuration values and execution states are recorded. API keys, personal/character names, user input and model output are excluded.</p>
         <p data-status role="status"></p><p data-integration></p>
         <div class="lunar-debug-actions"><button type="button" class="menu_button" data-export>Export JSON</button><button type="button" class="menu_button" data-clear>Clear recording</button></div>
         <label>Event filter <select data-filter><option value="">All events</option><option value="attention">Attention records</option><option value="ui.">UI actions / scrolling</option><option value="ig.setting">Configuration</option><option value="outfit.">Outfits</option><option value="background.">Backgrounds</option><option value="animation.">Animations</option><option value="context.">Context injection</option><option value="automation.">Automation</option><option value="host.">SillyTavern</option><option value="ig.">IG changes</option></select></label>
@@ -21,7 +21,7 @@ export function mountDebug(recorder, context, target) {
     function attach() { disconnect?.(); disconnect = connectImmersiveGroups(recorder.api, context); }
     function render() {
         const stats = recorder.stats();
-        query('[data-status]').textContent = `${stats.active ? 'Recording' : 'Stopped'} · ${stats.count}/${stats.capacity} records · ${stats.dropped} oldest events discarded · ${stats.summarized} routine repeats summarized · ${stats.attentionCount} attention records · ${stats.cancelledCount} cancellations (not automatically errors)`;
+        query('[data-status]').textContent = `${stats.active ? 'Recording' : 'Stopped'} · ${stats.count}/${stats.capacity} records · ${stats.dropped} oldest events discarded · ${stats.summarized} routine repeats summarized · ${stats.attentionCount} attention records · ${stats.cancelledCount} cancellations · ${stats.unobservedCount} generation completions not observed (not automatically errors)`;
         query('[data-alert]').textContent = stats.attentionCount ? `· ${stats.attentionCount} attention` : '';
         query('[data-alert]').classList.toggle('lunar-debug-warning', stats.attentionCount > 0);
         const ig = globalThis.ImmersiveGroups;
@@ -42,7 +42,9 @@ export function mountDebug(recorder, context, target) {
     });
     query('[data-clear]').addEventListener('click', () => { disconnect?.(true); disconnect = null; recorder.clear(); lastSignature = ''; if (recorder.stats().active) attach(); render(); });
     query('[data-filter]').addEventListener('change', render);
+    query('[data-filter]').append(new Option('Generation lifecycle', 'generation.'));
     query('[data-capacity]').value = preferences.capacity;
+    query('[data-capacity]').classList.add('text_pole');
     query('[data-capacity]').step = '1';
     query('[data-auto-start]').checked = preferences.autoStart;
     query('[data-capacity]').addEventListener('change', event => {
@@ -57,7 +59,7 @@ export function mountDebug(recorder, context, target) {
     query('[data-auto-start]').addEventListener('change', event => { preferences.autoStart = event.target.checked; saveDebugPreferences(context, preferences); });
     query('[data-export]').addEventListener('click', () => {
         disconnect?.flush();
-        const data = recorder.export({ lunarCore: '0.0.3', immersiveGroups: globalThis.ImmersiveGroups?.version });
+        const data = recorder.export({ lunarCore: '0.0.4', immersiveGroups: globalThis.ImmersiveGroups?.version });
         const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
         const link = document.createElement('a'); link.href = url; link.download = 'lunar-debug-recording.json';
         document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);

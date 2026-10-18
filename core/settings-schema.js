@@ -39,4 +39,5 @@ export const ACTIONS = Object.freeze([
     'background.lock', 'background_library.open', 'animation_defaults.reset',
     'automation.analyze', 'automation.cancel', 'automation.apply', 'context.preview',
     'context.instructions_reset', 'layout.preview_changed', 'layout.editor_changed',
+    'background.previous', 'background.next',
 ]);

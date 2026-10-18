@@ -27,6 +27,23 @@ test('configuration snapshots/diffs exclude private settings and respect profile
     assert.equal(recorder.entries().at(-1).value, undefined);
 });
 
+test('mobile inheritance is distinct from explicit edits, even when values are equal', () => {
+    const recorder = createRecorder(); recorder.start();
+    const activity = createActivity(recorder.api);
+    const settings = { stageGap: 8, mobileLayoutSettings: {} };
+    const tracker = createConfigurationTracker(recorder.api, activity, () => settings);
+    tracker.scan(true);
+    assert.equal(recorder.entries().find(row => row.profile === 'mobile').ownership, 'inherited');
+    settings.mobileLayoutSettings.stageGap = 8; tracker.scan(); activity.flush();
+    const explicit = recorder.entries().at(-1);
+    assert.equal(explicit.beforeOwnership, 'inherited'); assert.equal(explicit.ownership, 'explicit');
+    settings.stageGap = 12; tracker.scan(); activity.flush();
+    assert.equal(recorder.entries().at(-1).profile, 'desktop');
+    delete settings.mobileLayoutSettings.stageGap; tracker.scan(); activity.flush();
+    assert.equal(recorder.entries().at(-1).ownership, 'inherited');
+    assert.equal(recorder.entries().at(-1).after, 12);
+});
+
 test('layout bursts are summarized and discarded bursts cannot leak after clear', () => {
     const recorder = createRecorder(); recorder.start();
     let time = 0;

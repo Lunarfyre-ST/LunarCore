@@ -40,6 +40,7 @@ try {
     await page.evaluate(() => {
         ctx.extensionSettings = { ImmersiveGroups: { outfitFadeIn: 200, layoutMode: 'desktop',
             sceneAutomation: { enabled: true, apiUrl: 'PRIVATE', instructionsAll: 'PRIVATE', apiTransport: 'main' } } };
+        Object.assign(ctx.eventTypes, { GENERATION_ENDED: 'generationEnd', GENERATION_STOPPED: 'generationStop', GENERATION_AFTER_COMMANDS: 'generationAfter' });
         const shell = document.createElement('div'); shell.className = 'ig-settings-shell';
         shell.innerHTML = '<button id="ig-tab-animations">PRIVATE TAB TEXT</button><button data-scene-run>PRIVATE BUTTON TEXT</button><input type="range" data-animation-setting="outfitFadeIn"><input type="text" data-scene-setting="apiUrl">';
         document.body.append(shell);
@@ -79,17 +80,44 @@ try {
         animationSettings.outfitFadeMode = 'sequential'; animationSettings.outfitFadeIn = 200; animationSettings.outfitFadeOut = 200;
         const node = document.getElementById('sprite');
         const pending = animationModule.fadeSceneSwap(node, 'outfit', () => {});
-        animationModule.cancelSceneFade(node); await pending;
+        animationModule.cancelSceneFade(node, 'user_cancelled'); await pending;
+        Object.assign(animationSettings, { backgroundFadeEnabled: true, backgroundFadeMode: 'cross', backgroundFadeIn: 20, backgroundFadeOut: 20 });
+        animationModule.setupSceneAnimations();
+        const layoutPending = animationModule.fadeSceneSwap(node, 'outfit', () => {});
+        window.dispatchEvent(new Event('ig-layout-change')); await layoutPending;
+        const superseded = animationModule.fadeSceneSwap(node, 'outfit', () => {});
+        const newest = animationModule.fadeSceneSwap(node, 'outfit', () => {});
+        await Promise.all([superseded, newest]);
+        const chatPending = animationModule.fadeSceneSwap(node, 'outfit', () => {});
+        handlers.chat.forEach(fn => fn({ name: PRIVATE, mes: PRIVATE })); await chatPending;
+        const helper = await import(prefix + 'modules/diagnostics.js');
+        const picker = document.createElement('div'); picker.className = 'ig-background-popover';
+        picker.innerHTML = '<div data-bg-results><button class="ig-media-card" data-asset-id="PRIVATE">PRIVATE ASSET NAME</button></div>';
+        document.body.append(picker);
+        picker.querySelector('button').addEventListener('click', () => {
+            const trace = helper.diagnosticOperation('background.select', { source: 'manual' });
+            background.style.backgroundImage = 'url("/backgrounds/PRIVATE_SELECTED.png")';
+            animationModule.bindBackgroundDiagnostic(background, trace);
+            trace.finish({ outcome: 'requested' });
+        });
+        handlers.generation.forEach(fn => fn('quiet', { quiet_prompt: PRIVATE, automatic_trigger: true }, true));
+        handlers.generation.forEach(fn => fn('normal', { quiet_prompt: PRIVATE }, false));
+        handlers.generationAfter.forEach(fn => fn('normal', { quiet_prompt: PRIVATE }, false));
+        handlers.generationEnd.forEach(fn => fn({ mes: PRIVATE }));
+        handlers.generation.forEach(fn => fn('impersonate', {}, false));
+        handlers.generationStop.forEach(fn => fn(PRIVATE));
     }, prefix);
+    await page.locator('.ig-background-popover .ig-media-card').click();
+    await page.waitForFunction(() => !document.querySelector('.ig-background-transition') && document.getElementById('bg1').getAnimations().length === 0);
     const downloadPromise = page.waitForEvent('download'); await page.locator('[data-export]').click();
     const download = await downloadPromise;
     const json = JSON.parse(await readFile(await download.path(), 'utf8'));
     assert.equal(JSON.stringify(json).includes('PRIVATE'), false);
-    assert.equal(json.schemaVersion, 3);
-    assert.equal(json.versions.lunarCore, '0.0.3');
+    assert.equal(json.schemaVersion, 4);
+    assert.equal(json.versions.lunarCore, '0.0.4');
     assert.ok(json.events.some(row => row.event === 'ig.setting_snapshot' && row.setting === 'outfitFadeIn' && row.value === 200));
     assert.ok(json.events.some(row => row.event === 'ig.setting_change' && row.before === 200 && row.after === 300 && row.count === 100));
-    assert.ok(json.events.some(row => row.event === 'ig.layout' && row.count === 100));
+    assert.ok(json.events.some(row => row.event === 'ig.layout' && row.count >= 100));
     assert.ok(json.events.some(row => row.event === 'ui.scroll' && row.area === 'settings'));
     const action = json.events.find(row => row.action === 'automation.analyze');
     assert.ok(action);
@@ -98,14 +126,22 @@ try {
     assert.ok(json.events.some(row => row.event === 'animation.swap' && row.outcome === 'cancelled'));
     assert.ok(json.events.some(row => row.event === 'host.chat_changed'));
     assert.ok(json.events.some(row => row.event === 'background.observed'));
+    for (const reason of ['user_cancelled', 'layout_changed', 'superseded', 'chat_changed']) assert.ok(json.events.some(row => row.event === 'animation.swap' && row.outcome === 'cancelled' && row.reason === reason), reason);
+    const backgroundAction = json.events.find(row => row.action === 'background.select');
+    const backgroundStart = json.events.find(row => row.event === 'background.select' && row.phase === 'start');
+    assert.ok(backgroundAction); assert.equal(backgroundStart.causeOperation, backgroundAction.operation);
+    assert.ok(json.events.some(row => row.event === 'animation.background' && row.causeOperation === backgroundStart.operation));
+    assert.ok(json.events.some(row => row.event === 'generation.lifecycle' && row.reason === 'dry_run'));
+    assert.ok(json.events.some(row => row.event === 'generation.lifecycle' && row.reason === 'end_event'));
+    assert.ok(json.events.some(row => row.event === 'generation.lifecycle' && row.reason === 'stop_event'));
     await toggle.uncheck();
-    assert.equal(await page.evaluate(() => handlers.chat.length), 0);
+    assert.equal(await page.evaluate(() => handlers.chat.length), 1); // IG animation cancellation remains subscribed.
     await page.locator('[data-capacity]').fill('1000'); await page.locator('[data-capacity]').press('Tab');
     assert.equal(await page.evaluate(() => ctx.extensionSettings.LunarCore.debug.capacity), 1000);
     await page.evaluate(() => { delete ImmersiveGroups.diagnosticsProtocol; });
     await page.waitForFunction(() => document.querySelector('[data-integration]').classList.contains('lunar-debug-warning'));
     await toggle.check();
-    assert.equal(await page.evaluate(() => handlers.chat.length), 1);
+    assert.equal(await page.evaluate(() => handlers.chat.length), 3); // Host, lifecycle and IG animation subscribers.
     await page.locator('[data-clear]').click();
     await page.locator('[data-filter]').selectOption('animation.');
     await page.evaluate(() => {
@@ -139,6 +175,15 @@ try {
         const helper = await import(prefix + 'modules/diagnostics.js');
         globalThis[Symbol.for('LunarDebug.sink')] = { protocol: 1, enabled: true, emit() { throw Error(PRIVATE); }, begin() { throw Error(PRIVATE); } };
         helper.diagnostic('context.injection', {}); helper.diagnosticOperation('outfit.change', {}).finish({});
+        let calls = 0;
+        for (const run of [() => {}, () => { throw Error('consumer'); }, callback => { callback(); callback(); throw Error('consumer'); }]) {
+            globalThis[Symbol.for('LunarDebug.sink')] = { protocol: 1, enabled: true, begin: () => ({ run }) };
+            const result = helper.diagnosticOperation('outfit.change', {}).run(() => { calls++; return 42; });
+            if (result !== 42) return false;
+        }
+        if (calls !== 3) return false;
+        globalThis[Symbol.for('LunarDebug.sink')] = { protocol: 2, enabled: true, begin() { throw Error('incompatible consumer called'); } };
+        if (helper.diagnosticOperation('outfit.change', {}).run(() => 7) !== 7) return false;
         delete globalThis[Symbol.for('LunarDebug.sink')]; helper.diagnostic('context.injection', {});
         return true;
     }, prefix), true);

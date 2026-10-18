@@ -60,3 +60,34 @@ combining them. Runtime-error records intentionally do not identify their source
 Capacity is bounded to 50,000 main records plus 200 attention records. UI minimum
 is 1,000. Resize preserves active operations and newest records. No recording
 data is saved automatically, including when auto-start is enabled.
+
+## Schema 4 / v0.0.4
+
+`generation.lifecycle` operations observe host execution: `generationType`,
+`dryRun`, `dryRunKnown`, and optional `automatic` are read explicitly. Options
+objects and terminal payloads are never copied. `host.generation_coverage` records
+which event definitions can be subscribed to, not a promise that they fire for
+every start. Dry runs are skipped, not tracked as missing network requests.
+
+Normal end/stop events close the pending observation. Overlapping starts and
+post-chat-switch terminals are ambiguous because host events have no request ID.
+They produce `outcome: unobserved`, as does stopping the recorder while a start
+remains unmatched. This is not an attention/failure classification. Active export
+adds a pending observation rather than assuming a timeout or failure.
+
+`ownership` identifies `shared`, `explicit` and `inherited` setting values;
+`beforeOwnership` preserves the initial ownership through an aggregated change.
+Ownership changes are recorded even if the effective value stays the same.
+
+Operation `run(callback)` propagates an explicit parent operation context through
+a producer-chosen callback. The callback always runs, even if recording stopped;
+stale sessions do not add links. Updated IG hooks associate a native background
+selection with its already-queued style observer; the association expires after
+that microtask, so unrelated future changes cannot inherit it. `causeOperation`
+can refer to either a UI action or an explicit parent producer operation.
+
+Cancellation reasons are emitted where cancellation occurs: superseded, chat,
+layout, viewport, motion preference or scene disable changes; stale results;
+unknown when the producer has no explicit reason. Similar timing alone never
+sets a reason. Product setting/state names are allowed; raw text and private
+identifiers are still rejected at the sink.

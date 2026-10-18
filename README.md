@@ -1,4 +1,4 @@
-# LunarCore v0.0.3 — LunarDebug preview
+# LunarCore v0.0.4 — LunarDebug preview
 
 LunarCore is a SillyTavern UI extension. Its first module is LunarDebug, an
 optional recorder for real-use diagnostic metadata, especially ImmersiveGroups.
@@ -41,6 +41,14 @@ both buffers and counts of discarded attention records.
 
 ## Recorded metadata
 
+- Generation type, dry-run status, after-command stage, terminal-event coverage
+  and observed completion/stop. Unmatched or ambiguous lifecycles are marked
+  **completion not observed**, without inventing a failure. Live exports report
+  in-flight operations as pending; Stop closes remaining observations as unobserved.
+- Profile ownership: shared, explicit override or inherited effective value.
+- With updated IG hooks, explicit animation cancellation reasons and background
+  action → selection → animation links, including background navigation arrows.
+
 - Named menu/button actions using fixed product identifiers, never visible text.
 - Initial allowlisted configuration and before/after setting changes, including
   separate desktop/mobile layout values, animation settings, and safe automation options.
@@ -73,6 +81,12 @@ DOM content, hashes, absolute timestamps, or browser identifiers are accepted.
 Operation IDs are local counters. This also means recordings cannot identify
 which character or asset was involved. Timing and counts still reveal activity;
 review an export before sharing it. Nothing is uploaded automatically.
+
+Setting names, configuration values (such as fade duration, scope or layout),
+and execution-state names are useful diagnostics and are intentionally included.
+Sensitive data means credentials/API keys, personal or character names, user input,
+model output and other private content. Product metadata is not treated as private
+merely because it has a name. Free-form values and raw settings dumps stay excluded.
 
 This is an application recorder, not a JavaScript debugger or network capture.
 It cannot observe arbitrary extension internals, the server, or model reasoning.

@@ -3,6 +3,7 @@
 import { SETTINGS, ACTIONS, settingValue } from './settings-schema.js';
 export const EVENTS = Object.freeze([
     'runtime.error', 'runtime.unhandled_rejection',
+    'host.generation_coverage', 'host.generation_after_commands', 'generation.lifecycle',
     'ui.action', 'ui.scroll', 'ig.setting_snapshot', 'ig.setting_change', 'ig.configuration',
     'recorder', 'integration', 'outfit.change', 'background.select',
     'background.automatic', 'background.observed', 'animation.swap', 'animation.background',
@@ -17,16 +18,22 @@ export const EVENTS = Object.freeze([
 const enumFields = {
     action: ACTIONS, setting: Object.keys(SETTINGS), profile: ['shared', 'desktop', 'mobile'],
     layout: ['desktop', 'mobile'], area: ['settings', 'live_tuning', 'outfit_picker', 'background_picker', 'library'],
+    ownership: ['shared', 'explicit', 'inherited'], beforeOwnership: ['shared', 'explicit', 'inherited'],
+    generationType: ['normal', 'quiet', 'impersonate', 'regenerate', 'swipe', 'continue', 'other'],
+    stage: ['after_commands', 'completion_not_observed'],
     source: ['manual', 'automatic', 'other'],
     kind: ['outfit', 'background', 'other'],
     mode: ['cross', 'sequential', 'prompt', 'api', 'other'],
     transport: ['main', 'profile', 'custom', 'other'],
-    outcome: ['applied', 'completed', 'skipped', 'cancelled', 'failed', 'requested'],
-    reason: ['unavailable', 'scope_or_lock', 'stale', 'unchanged', 'disabled', 'invalid', 'error', 'other'],
+    outcome: ['applied', 'completed', 'skipped', 'cancelled', 'failed', 'requested', 'unobserved', 'pending'],
+    reason: ['unavailable', 'scope_or_lock', 'stale', 'unchanged', 'disabled', 'invalid', 'error', 'other',
+        'superseded', 'chat_changed', 'layout_changed', 'viewport_changed', 'motion_changed', 'disabled_scene', 'unknown',
+        'user_cancelled', 'dry_run', 'overlapping_start', 'ambiguous_terminal', 'recording_stopped', 'recording_exported', 'end_event', 'stop_event'],
     status: ['absent', 'legacy', 'instrumented', 'starting', 'ready', 'partial', 'failed', 'blocked', 'other'],
 };
 const numberFields = new Set(['count', 'durationMs', 'inMs', 'outMs', 'characters', 'commands', 'issues', 'applied', 'skipped', 'failed', 'depth', 'promptCharacters', 'messageCount']);
-const booleanFields = new Set(['enabled', 'automatic', 'dryRun', 'reducedMotion', 'committed', 'changed']);
+const booleanFields = new Set(['enabled', 'automatic', 'dryRun', 'dryRunKnown', 'reducedMotion', 'committed', 'changed',
+    'startAvailable', 'endAvailable', 'stopAvailable', 'afterCommandsAvailable']);
 function safeFields(input) {
     const result = {};
     if (!input || typeof input !== 'object') return result;
@@ -50,6 +57,7 @@ export function createRecorder({ capacity = 10000, now = () => performance.now()
     if (!Number.isInteger(capacity) || capacity < 1 || capacity > 50000) throw new RangeError('Invalid capacity');
     let active = false, session = 0, origin = 0, serial = 0, operation = 0, dropped = 0;
     let revision = 0, summarized = 0, attentionCount = 0, cancelledCount = 0, attentionDropped = 0;
+    let unobservedCount = 0;
     const routine = new Map(), attention = [];
     let actionContext = null;
     const currentCause = () => actionContext && (!actionContext.event || actionContext.event.eventPhase > 0) ? actionContext.id : null;
@@ -83,6 +91,7 @@ export function createRecorder({ capacity = 10000, now = () => performance.now()
             attention.push({ ...record });
         }
         if (record.outcome === 'cancelled') cancelledCount++;
+        if (record.event === 'generation.lifecycle' && record.phase === 'end' && record.outcome === 'unobserved') unobservedCount++;
         if (size < capacity) buffer[(head + size++) % capacity] = record;
         else {
             const evicted = buffer[head];
@@ -96,6 +105,7 @@ export function createRecorder({ capacity = 10000, now = () => performance.now()
         session++; actionContext = null; routine.clear(); attention.length = 0;
         buffer = new Array(capacity); head = size = serial = operation = dropped = 0;
         summarized = attentionCount = cancelledCount = attentionDropped = 0; origin = now(); revision++;
+        unobservedCount = 0;
     }
     const api = Object.freeze({
         protocol: 1,
@@ -118,6 +128,12 @@ export function createRecorder({ capacity = 10000, now = () => performance.now()
             let finished = false;
             append(event, 'start', data, op);
             return Object.freeze({
+                run(callback) {
+                    if (!active || epoch !== session) return callback();
+                    const previous = actionContext;
+                    actionContext = { id: op, event: null };
+                    try { return callback(); } finally { actionContext = previous; }
+                },
                 step(fields) { if (!finished && active && epoch === session) append(event, 'detail', fields, op, cause); },
                 finish(fields) {
                     if (finished) return;
@@ -141,9 +157,9 @@ export function createRecorder({ capacity = 10000, now = () => performance.now()
             retained.forEach((record, index) => { buffer[index] = record; });
             routine.clear(); revision++;
         },
-        stats() { return { active, count: size, dropped, capacity, summarized, attentionCount, cancelledCount, attentionRetained: attention.length, attentionDropped, revision }; },
+        stats() { return { active, count: size, dropped, capacity, summarized, attentionCount, cancelledCount, unobservedCount, attentionRetained: attention.length, attentionDropped, revision }; },
         export(versions = {}) {
-            return { schema: 'lunar-debug-recording', schemaVersion: 3, protocolVersion: 1,
+            return { schema: 'lunar-debug-recording', schemaVersion: 4, protocolVersion: 1,
                 versions: { lunarCore: safeVersion(versions.lunarCore), immersiveGroups: safeVersion(versions.immersiveGroups) },
                 ...this.stats(), attentionEvents: attention.map(record => ({ ...record })), events: entries() };
         },

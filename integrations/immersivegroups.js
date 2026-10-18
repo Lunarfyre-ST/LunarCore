@@ -1,9 +1,9 @@
 import { createActivity, createConfigurationTracker, connectActivity } from './activity.js';
+import { connectGeneration } from './generation.js';
 
 const hostEvents = {
     CHAT_CHANGED: 'chat_changed', GROUP_CHAT_CHANGED: 'chat_changed', GROUP_UPDATED: 'group_updated',
-    GENERATION_STARTED: 'generation_started', GENERATION_ENDED: 'generation_ended',
-    GENERATION_STOPPED: 'generation_stopped', MESSAGE_SWIPED: 'message_swiped',
+    MESSAGE_SWIPED: 'message_swiped',
     MESSAGE_EDITED: 'message_edited', MESSAGE_DELETED: 'message_deleted', SETTINGS_UPDATED: 'settings_updated',
     GROUP_WRAPPER_STARTED: 'group_started', GROUP_WRAPPER_FINISHED: 'group_finished', GROUP_MEMBER_DRAFTED: 'member_drafted',
 };
@@ -16,6 +16,7 @@ export function connectImmersiveGroups(api, context, { win = window, doc = docum
     const cleanups = [];
     let connected = true;
     const activity = createActivity(api);
+    const generation = connectGeneration(api, context);
     const tracker = createConfigurationTracker(api, activity, () => (context.extensionSettings || context.extension_settings)?.ImmersiveGroups);
     const listen = (target, name, handler) => { target.addEventListener(name, handler); cleanups.push(() => target.removeEventListener(name, handler)); };
     function snapshot() {
@@ -74,9 +75,10 @@ export function connectImmersiveGroups(api, context, { win = window, doc = docum
     const dispose = (discard = false) => {
         if (!connected) return;
         connected = false;
+        generation.dispose(discard);
         for (const cleanup of cleanups.reverse()) cleanup();
         if (discard) activity.discard(); else activity.flush();
     };
-    dispose.flush = () => { if (connected) { tracker.scan(); activity.flush(); } };
+    dispose.flush = () => { if (connected) { tracker.scan(); activity.flush(); generation.report(); } };
     return dispose;
 }
