@@ -11,7 +11,7 @@ const fixture = `<!doctype html><html><head><meta charset="utf-8"><link rel="sty
 body{margin:0;padding:30px;color:var(--SmartThemeBodyColor);font:15px/1.45 system-ui;background:radial-gradient(ellipse at 0 0,#19203a,transparent 70%),linear-gradient(150deg,#0a0b17,#1a1228);min-height:100vh;box-sizing:border-box}
 main{max-width:680px;margin:auto;padding:18px;background:var(--SmartThemeBlurTintColor);border:1px solid var(--SmartThemeBorderColor);border-radius:12px}.inline-drawer-header{padding:6px;border:1px solid var(--SmartThemeBorderColor);border-radius:8px}button,select{font:inherit;color:inherit;background:var(--SmartThemeBlurTintColor);border:1px solid var(--SmartThemeBorderColor);border-radius:5px;padding:5px}small{opacity:.8}h1{font-size:18px;margin:0 0 15px}.lunar-ui p{font-size:13px}fieldset p{margin-bottom:0}
 </style></head><body><main class="drawer-content"><h1>LunarUI · night profiles</h1><div id="extensions_settings"></div></main>
-<div id="chat" style="margin-top:25px"><input id="draft" value="fixture input"><img id="art" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1' height='1'%3E%3C/svg%3E"></div>
+<nav id="top-settings-holder">Navigation</nav><form id="send_form"><textarea id="send_textarea"></textarea></form><dialog class="popup" open>Fixture dialog</dialog><div id="chat" style="margin-top:25px;height:180px"><input id="draft" value="fixture input"><img id="art" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1' height='1'%3E%3C/svg%3E"></div>
 <script type="module">import {mountUI} from '/modules/ui/index.js';window.saves=0;window.ctx={extensionSettings:{LunarCore:{ui:JSON.parse(sessionStorage.getItem('uiFixture')||'{}'),debug:{capacity:5000}}},saveSettingsDebounced(){saves++;sessionStorage.setItem('uiFixture',JSON.stringify(this.extensionSettings.LunarCore.ui))}};window.disposeUI=mountUI(document.getElementById('extensions_settings'),ctx);</script></body></html>`;
 const server = http.createServer(async (req, res) => {
     try {
@@ -43,7 +43,8 @@ try {
     assert.equal(await page.locator('[data-ui-opacity]').inputValue(), '46');
     await page.locator('[data-ui-effects]').check(); await page.locator('[data-ui-breathing]').check();
     await page.waitForFunction(() => document.querySelectorAll('.lunar-ambient-visible').length > 0);
-    assert.equal(await page.locator('.lunar-ambient').count(), 2);
+    const baseCount = await page.locator('.lunar-ambient').count();
+    assert.equal(baseCount, 7);
     assert.equal(await page.locator('#chat .lunar-ambient').count(), 0);
     assert.equal(await page.locator('.lunar-ambient').first().evaluate(node => getComputedStyle(node).pointerEvents), 'none');
     await page.locator('[data-ui-intensity]').evaluate(node => { node.value = 65; node.dispatchEvent(new Event('input', { bubbles: true })); });
@@ -54,6 +55,23 @@ try {
     await page.locator('[data-ui-twinkles]').uncheck();
     assert.equal(await page.locator('.lunar-star').first().evaluate(node => getComputedStyle(node).animationName), 'none');
     await page.locator('[data-ui-twinkles]').check();
+    // Local controls affect only the selected area, survive reload, and never enter chat/form DOM.
+    await page.locator('[data-ui-area]').selectOption('chat');
+    assert.equal(await page.locator('[data-area-twinkles]').inputValue(), '25');
+    await page.locator('[data-area-twinkles]').evaluate(node => { node.value = 0; node.dispatchEvent(new Event('input', { bubbles: true })); });
+    assert.equal(await page.locator('[data-lunar-area="chat"] .lunar-star').first().evaluate(node => getComputedStyle(node).animationName), 'none');
+    assert.notEqual(await page.locator('[data-lunar-area="settings"] .lunar-star').first().evaluate(node => getComputedStyle(node).animationName), 'none');
+    await page.locator('[data-area-speed]').evaluate(node => { node.value = 2; node.dispatchEvent(new Event('input', { bubbles: true })); });
+    assert.equal(await page.locator('[data-lunar-area="chat"] .lunar-sheen').evaluate(node => getComputedStyle(node).animationDuration), '18s');
+    await page.locator('[data-area-enabled]').uncheck();
+    assert.equal(await page.locator('[data-lunar-area="chat"]').count(), 0);
+    await page.locator('[data-area-enabled]').check();
+    assert.equal(await page.locator('#send_form .lunar-ambient').count(), 0);
+    await page.evaluate(() => document.getElementById('chat').style.width = '250px');
+    await page.locator('#chat').scrollIntoViewIfNeeded();
+    await page.waitForFunction(() => Math.abs(document.querySelector('[data-lunar-area="chat"]').getBoundingClientRect().width - 250) < 1);
+    // The native dialog keeps its fixed/absolute layout; an overlay never repositions it.
+    assert.notEqual(await page.locator('dialog.popup').evaluate(node => getComputedStyle(node).position), 'relative');
     // New extension headers are decorated once without reading any label.
     await page.evaluate(() => { const header = document.createElement('div'); header.className = 'inline-drawer-header'; header.id = 'late-header'; header.textContent = 'Another extension'; document.getElementById('extensions_settings').append(header); });
     await page.waitForFunction(() => document.querySelectorAll('#late-header > .lunar-ambient').length === 1);
@@ -65,12 +83,12 @@ try {
     });
     await page.waitForFunction(() => document.querySelectorAll('.lunar-ambient').length === 80);
     await page.evaluate(() => document.getElementById('many-headers').remove());
-    await page.waitForFunction(() => document.querySelectorAll('.lunar-ambient').length === 2);
+    await page.waitForFunction(() => document.querySelectorAll('.lunar-ambient').length === 7);
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.waitForFunction(() => document.querySelectorAll('.lunar-ambient').length === 0);
     assert.ok((await page.locator('[data-ui-status]').textContent()).includes('reduced motion'));
     await page.emulateMedia({ reducedMotion: 'no-preference' });
-    await page.waitForFunction(() => document.querySelectorAll('.lunar-ambient').length === 2);
+    await page.waitForFunction(() => document.querySelectorAll('.lunar-ambient').length === 7);
     await page.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, value: true }); document.dispatchEvent(new Event('visibilitychange')); });
     assert.equal(await page.locator('.lunar-star').first().evaluate(node => getComputedStyle(node).animationPlayState), 'paused');
     await page.evaluate(() => { delete document.hidden; document.dispatchEvent(new Event('visibilitychange')); });
@@ -80,6 +98,9 @@ try {
     assert.equal(await page.locator('[data-ui-profile]').inputValue(), 'twilight');
     assert.equal(await page.locator('[data-ui-opacity]').inputValue(), '46');
     assert.equal(await page.locator('[data-ui-effects]').isChecked(), true);
+    await page.locator('[data-ui-area]').selectOption('chat');
+    assert.equal(await page.locator('[data-area-twinkles]').inputValue(), '0');
+    assert.equal(await page.locator('[data-area-speed]').inputValue(), '2');
     assert.equal(await page.evaluate(() => ctx.extensionSettings.LunarCore.debug.capacity), 5000);
     await page.setViewportSize({ width: 390, height: 1000 });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);

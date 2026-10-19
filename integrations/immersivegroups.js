@@ -24,6 +24,7 @@ export function connectImmersiveGroups(api, context, { win = window, doc = docum
         const ig = win.ImmersiveGroups;
         api.emit('integration', { status: !ig ? 'absent' : ig.diagnosticsProtocol === 1 ? 'instrumented' : 'legacy' });
         if (ig?.getStatus) { try { api.emit('integration', { status: ig.getStatus().status }); } catch { api.emit('integration', { status: 'failed' }); } }
+        api.emit('motion.coverage', { motionHooks: ig?.motionDiagnosticsProtocol === 1, spriteObserver: Boolean(win.MutationObserver && doc.body) });
         tracker.scan(true);
         const state = (context.extensionSettings || context.extension_settings)?.ImmersiveGroups;
         const layout = state?.layoutMode === 'mobile' || (state?.layoutMode !== 'desktop' && win.innerWidth <= (Number(state?.mobileLayoutWidth) || 1000)) ? 'mobile' : 'desktop';

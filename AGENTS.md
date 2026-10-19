@@ -176,3 +176,12 @@ storage can be evicted or cleared. Export important recordings. No automatic
 download, directory permission, server filesystem access, absolute timestamp or
 character/asset identifier is added. This supersedes earlier memory-only wording
 for users who explicitly enable local auto-save.
+
+## Recording analysis notes
+
+Whenever a recording is analyzed, append a metadata-only finding to
+`docs/debug-notes.md`: schema/versions, active/loss status, deduplicated evidence,
+uncertainties and actionable follow-up. Never copy private content into notes.
+For actionable LunarDebug findings, leave a comment for its responsible
+ImmersiveGroups worker; the user authorized these analysis handoffs. Preserve
+that worker's ownership and concurrent edits.

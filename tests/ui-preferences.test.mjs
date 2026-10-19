@@ -29,3 +29,22 @@ test('UI saves preserve recorder preferences and retain the legacy Moonlight fla
     saveUIPreferences(context, { enabled: true, profile: 'moonlight' });
     assert.equal(context.extensionSettings.LunarCore.ui.moonlightBlue, true); assert.equal(saves, 2);
 });
+
+test('area controls migrate independently and reject unknown or untyped values', () => {
+    const defaults = readUIPreferences({ effects: { enabled: true } }).effects;
+    assert.equal(defaults.areas.chat.twinkles, 25);
+    assert.equal(defaults.areas.settings.twinkles, 100);
+    const prefs = readUIPreferences({ effects: { areas: {
+        chat: { enabled: false, twinkles: 0, speed: 5 },
+        settings: { enabled: 'false', sweeps: -1, breathing: Infinity },
+        privateArea: { enabled: true },
+    } } });
+    assert.equal(prefs.effects.areas.chat.enabled, false);
+    assert.equal(prefs.effects.areas.chat.twinkles, 0);
+    assert.equal(prefs.effects.areas.chat.speed, 2);
+    assert.equal(prefs.effects.areas.settings.enabled, true);
+    assert.equal(prefs.effects.areas.settings.sweeps, 0);
+    assert.equal(prefs.effects.areas.settings.breathing, 60);
+    assert.equal('privateArea' in prefs.effects.areas, false);
+    assert.deepEqual(readUIPreferences(prefs), prefs);
+});

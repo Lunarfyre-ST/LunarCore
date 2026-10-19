@@ -23,8 +23,8 @@ Custom CSS can still override the pack's styles.
 
 ## Idle effects
 
-- **Starlight twinkles:** small, staggered stars along header edges.
-- **Shining sweeps:** occasional soft highlights passing across headers.
+- **Starlight twinkles:** small, staggered stars along UI edges.
+- **Shining sweeps:** occasional soft highlights passing across headers or surface edges.
 - **Breathing glow:** a slow change in a decorative border's opacity.
 
 Intensity ranges from 0–100%; speed ranges from 0.25×–2×. At the default 0.75×,
@@ -32,12 +32,23 @@ cycles are about 13 seconds for twinkles, 24 for sweeps and 16 for breathing.
 Sweeps remain idle during most of their cycle. These are independent of IG's
 sprite/background animations and do not modify those preferences.
 
-Decorative layers are restricted to extension settings headers and the profile
-preview, at most 80 hosts with six decorative elements per host. They are inert,
-hidden from assistive technology and ignore pointer input. No effect is placed
-over chat text, input controls, images or sprites. Offscreen animations and hidden
-tabs pause; reduced-motion preferences remove the layers. Disabling effects or
-disposing LunarUI disconnects its observers/listeners and removes its decorations.
+Area tuning covers Chat / Sheld, the message composer, navigation, side panels,
+dialogs and settings headers. Each has an enable switch, independent twinkle,
+sweep and glow strengths (0–100%), and a speed multiplier (0.25–2×). Strengths
+multiply global intensity; zero disables that effect locally. Speeds multiply
+global speed. Chat twinkles default to 25% of global strength, composer to 35%.
+The master switch and global effect switches apply to every area.
+
+Surface selectors and defaults live in `modules/ui/areas.js`. Chat, composer,
+navigation and panels use external fixed frames aligned/clipped to their native
+bounds, with sweeps masked to edges. No children are added to chat or forms.
+Dialogs and headers use inert local layers. At most 80 surfaces are decorated;
+major surfaces precede headers. Pointer input and assistive technology ignore
+these layers. Resize, scroll, panel changes and dragging refresh their geometry.
+Hidden/offscreen animations pause; reduced motion removes layers. Disable and
+dispose clean up decorations, observers and listeners. Custom themes or new host
+surfaces may require additional explicit selectors; this does not theme sprites,
+background images or every individual message/control.
 
 ## Persistence and diagnostics ownership
 

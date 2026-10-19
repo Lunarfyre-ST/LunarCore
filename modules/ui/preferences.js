@@ -1,3 +1,5 @@
+import { EFFECT_AREAS } from './areas.js';
+
 export const PROFILE_DEFAULTS = Object.freeze({ moonlight: 82, twilight: 58 });
 const bounded = (value, min, max, fallback) => typeof value === 'number' && Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
 
@@ -16,6 +18,16 @@ export function readUIPreferences(value = {}) {
             breathing: value?.effects?.breathing === true,
             intensity: bounded(value?.effects?.intensity, 0, 100, 35),
             speed: bounded(value?.effects?.speed, 0.25, 2, 0.75),
+            areas: Object.fromEntries(EFFECT_AREAS.map(area => {
+                const saved = value?.effects?.areas?.[area.id];
+                return [area.id, {
+                    enabled: typeof saved?.enabled === 'boolean' ? saved.enabled : true,
+                    twinkles: bounded(saved?.twinkles, 0, 100, area.twinkles),
+                    sweeps: bounded(saved?.sweeps, 0, 100, area.id === 'settings' ? 100 : 50),
+                    breathing: bounded(saved?.breathing, 0, 100, 60),
+                    speed: bounded(saved?.speed, 0.25, 2, 1),
+                }];
+            })),
         },
     };
 }

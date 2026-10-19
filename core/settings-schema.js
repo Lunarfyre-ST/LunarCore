@@ -19,6 +19,7 @@ export const SETTINGS = Object.freeze({
         [`${id}MotionEnabled`, boolean], [`${id}MotionDuration`, number(min, max)],
         [`${id}MotionStrength`, number(0, strength)],
     ])),
+    breathingMotionWaitingStrength: number(0, 100),
     entranceMotionStyle: choice('fade', 'slide'), breathingMotionScope: choice('speaker', 'all'),
     reactionMotionStyle: choice('hop', 'nod', 'tilt', 'shake'),
     backgroundPanMotionDirection: choice('left', 'right', 'up', 'down'),
@@ -47,6 +48,7 @@ export function settingValue(key, value) {
 export const ACTIONS = Object.freeze([
     'tab.layout', 'tab.controls', 'tab.characters', 'tab.sprites', 'tab.animations',
     'tab.backgrounds', 'tab.automation', 'tab.gallery', 'tab.legacy', 'tab.about',
+    'animation.section_idle', 'animation.section_experimental',
     'outfit_picker.toggle', 'outfit.select', 'background.select', 'background_picker.close',
     'background.lock', 'background_library.open', 'animation_defaults.reset',
     'automation.analyze', 'automation.cancel', 'automation.apply', 'context.preview',

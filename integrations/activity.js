@@ -50,6 +50,7 @@ export function createConfigurationTracker(api, activity, settings) {
 
 const actions = [
     ...Object.entries({ chat: 'layout', controls: 'controls', outfits: 'characters', sprites: 'sprites', animations: 'animations', backgrounds: 'backgrounds', context: 'automation', gallery: 'gallery', original: 'legacy', about: 'about' }).map(([id, name]) => [`#ig-tab-${id}`, `tab.${name}`]),
+    ['[data-animation-tab=idle]', 'animation.section_idle'], ['[data-animation-tab=experimental]', 'animation.section_experimental'],
     ['[data-animation-reset]', 'animation_defaults.reset'], ['[data-scene-run]', 'automation.analyze'],
     ['[data-scene-cancel]', 'automation.cancel'], ['[data-scene-apply]', 'automation.apply'],
     ['[data-scene-preview-refresh]', 'context.preview'], ['[data-scene-reset-instructions]', 'context.instructions_reset'],

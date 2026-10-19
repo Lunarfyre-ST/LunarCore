@@ -4,12 +4,12 @@ const selector = '#visual-novel-wrapper .expression-holder img, #ig-mobile-sprit
 export function connectSprites(api, { win = window, doc = document } = {}) {
     if (!win.MutationObserver || !doc.body) return () => {};
     const states = new Map();
-    let connected = true, frame = null;
+    let connected = true, frame = null, inventory = '';
     const read = node => {
         const renderer = node.closest('#ig-mobile-sprites') ? 'mobile' : node.closest('#visual-novel-wrapper') ? 'desktop' : 'solo';
         const holder = node.closest('.expression-holder'), style = win.getComputedStyle(node);
         return { renderer, visible: Boolean(node.isConnected && node.getClientRects().length && style.visibility !== 'hidden' && win.getComputedStyle(holder).display !== 'none'),
-            imageReady: Boolean(node.complete && node.naturalWidth > 0) };
+            imageReady: Boolean(node.complete && node.naturalWidth > 0), nativeTransition: Boolean(holder.querySelector('img.expression-animating,img.expression-clone')) };
     };
     function scan() {
         if (!connected) return;
@@ -23,9 +23,13 @@ export function connectSprites(api, { win = window, doc = document } = {}) {
             } else {
                 if (source !== state.source) state.operation?.step({ stage: 'source_changed', changed: true, ...fields });
                 if (fields.visible !== state.visible || fields.renderer !== state.renderer) state.operation?.step({ stage: 'visibility_changed', ...fields });
+                if (fields.nativeTransition !== state.nativeTransition) state.operation?.step({ stage: 'native_state', ...fields });
                 Object.assign(state, fields, { source });
             }
         }
+        const summary = { count: found.size, visibleCount: [...found].filter(node => states.get(node)?.visible).length, readyCount: [...found].filter(node => states.get(node)?.imageReady).length, nativeCount: [...found].filter(node => states.get(node)?.nativeTransition).length };
+        const signature = JSON.stringify(summary);
+        if (signature !== inventory) { inventory = signature; api.emit('sprite.inventory', summary); }
         for (const [node, state] of states) if (!found.has(node)) {
             state.operation?.finish({ stage: 'removed', outcome: 'completed', reason: 'removed' });
             states.delete(node);

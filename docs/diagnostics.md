@@ -145,3 +145,33 @@ storage can be evicted or cleared. Export important recordings. No automatic
 download, directory permission, server filesystem access, absolute timestamp or
 character/asset identifier is added. This supersedes earlier memory-only wording
 for users who explicitly enable local auto-save.
+
+## IG 0.3.7 motion investigation
+
+`motion.coverage` explicitly reports the companion's `motionDiagnosticsProtocol`
+flag and native sprite observer availability. A release number alone is not hook
+coverage. `sprite.inventory` records changes in total/visible/ready/native-transition
+image counts; these count DOM images, not characters. Native expression swaps can
+temporarily contain two images. `sprite.lifecycle` includes `nativeTransition`
+and `native_state`; `motion.lifecycle` includes native waits and holder-preserving
+node replacement. No character/asset identity or DOM reference enters the sink.
+
+Needs review filters failures, unsupported motion, stale/unknown cancellation,
+and entrances interrupted by source/native transitions. It is a review aid, not
+a bug count. Ordinary supersession/removal/settings changes remain available in
+All events and exports. Sprite loading / entrances includes lifecycle, inventory,
+coverage and entrance jobs; other motion is available in Animations. Export is
+never restricted by the current filter. Routine lifecycle repetitions remain
+summarized with counts; native image transitions do not imply a network reload.
+Stored duration values remain milliseconds although IG displays seconds. Waiting
+breathing intensity is a shared percentage; missing values are not inferred.
+
+Repeated `sprite.lifecycle` load errors for the same operation and identical safe
+metadata are grouped only while the image is hidden. Summary `count` is error
+observations, with first `elapsedMs` and latest `lastElapsedMs`; it does not count
+independent bugs or identify a network cause. Any other detail/end in that
+operation (including source/visibility/native-state changes), metadata change,
+eviction, resize, Stop or Clear breaks grouping. Visible-image errors stay
+individual. `attentionCount` still counts observations; `attentionRetained` counts
+retained records, so they can differ. The matching attention/main summary shares
+its sequence and count; deduplicate by sequence when combining arrays.

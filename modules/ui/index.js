@@ -1,6 +1,7 @@
 import { createSettingsDrawer } from '../../core/settings-panel.js';
 import { readUIPreferences, saveUIPreferences, PROFILE_DEFAULTS } from './preferences.js';
 import { createNightEffects } from './effects.js';
+import { EFFECT_AREAS } from './areas.js';
 
 export function mountUI(target, context, { onChange = () => {} } = {}) {
     const panel = createSettingsDrawer('LunarUI', 'laptop', 'lunar-ui');
@@ -21,7 +22,13 @@ export function mountUI(target, context, { onChange = () => {} } = {}) {
         <label class="lunar-theme-toggle"><input type="checkbox" data-ui-breathing> Breathing glow</label>
         <label class="lunar-ui-field">Intensity <input type="range" min="0" max="100" step="1" data-ui-intensity><output data-intensity-value></output></label>
         <label class="lunar-ui-field">Speed <input type="range" min="0.25" max="2" step="0.05" data-ui-speed><output data-speed-value></output></label>
-        </div><p>Decorative effects stay on settings headers. They pause in hidden tabs and honor reduced motion.</p>
+        </div>
+        <fieldset class="lunar-effects-settings"><legend>Area tuning</legend>
+        <label class="lunar-ui-field">Area<select class="text_pole" data-ui-area>${EFFECT_AREAS.map(area => `<option value="${area.id}">${area.label}</option>`).join('')}</select></label>
+        <label class="lunar-theme-toggle"><input type="checkbox" data-area-enabled> Enable effects in this area</label>
+        ${['twinkles', 'sweeps', 'breathing', 'speed'].map(key => `<label class="lunar-ui-field">${{ twinkles: 'Twinkle strength', sweeps: 'Sweep strength', breathing: 'Glow strength', speed: 'Speed multiplier' }[key]}<input type="range" min="${key === 'speed' ? '0.25' : '0'}" max="${key === 'speed' ? '2' : '100'}" step="${key === 'speed' ? '0.05' : '1'}" data-area-${key}><output data-area-${key}-value></output></label>`).join('')}
+        <p>Area strengths multiply the global intensity; zero disables that effect here. Area speed multiplies global speed. Chat / Sheld starts with gentler twinkles.</p></fieldset>
+        <p>Effects decorate chat edges, composer, navigation, panels, dialogs and settings headers. They pause offscreen or in hidden tabs and honor reduced motion.</p>
         </fieldset><small data-ui-status role="status"></small>`;
     target.append(panel.drawer);
     const query = selector => panel.content.querySelector(selector);
@@ -31,6 +38,16 @@ export function mountUI(target, context, { onChange = () => {} } = {}) {
     for (const key of ['twinkles', 'sweeps', 'breathing']) query(`[data-ui-${key}]`).checked = preferences.effects[key];
     query('[data-ui-intensity]').value = preferences.effects.intensity;
     query('[data-ui-speed]').value = preferences.effects.speed;
+    function showArea() {
+        const area = preferences.effects.areas[query('[data-ui-area]').value];
+        query('[data-area-enabled]').checked = area.enabled;
+        query('[data-area-enabled]').disabled = !preferences.effects.enabled;
+        for (const key of ['twinkles', 'sweeps', 'breathing', 'speed']) {
+            query(`[data-area-${key}]`).value = area[key];
+            query(`[data-area-${key}]`).disabled = !preferences.effects.enabled || !area.enabled;
+            query(`[data-area-${key}-value]`).textContent = key === 'speed' ? `${area[key].toFixed(2)}×` : `${area[key]}%`;
+        }
+    }
     let effectState = { active: false, reducedMotion: false, hidden: false };
     function status() {
         const name = preferences.profile === 'twilight' ? 'Twilight' : 'Moonlight Blue';
@@ -52,7 +69,7 @@ export function mountUI(target, context, { onChange = () => {} } = {}) {
         query('[data-intensity-value]').textContent = `${preferences.effects.intensity}%`;
         query('[data-speed-value]').textContent = `${preferences.effects.speed.toFixed(2)}×`;
         for (const input of panel.content.querySelectorAll('.lunar-effects-options input')) input.disabled = !preferences.effects.enabled;
-        effects.update(preferences.effects); status();
+        showArea(); effects.update(preferences.effects); status();
     }
     function persist() {
         saveUIPreferences(context, preferences); apply();
@@ -68,6 +85,11 @@ export function mountUI(target, context, { onChange = () => {} } = {}) {
     }
     query('[data-ui-opacity]').addEventListener('input', event => { preferences.opacity[preferences.profile] = Number(event.target.value); persist(); });
     for (const key of ['intensity', 'speed']) query(`[data-ui-${key}]`).addEventListener('input', event => { preferences.effects[key] = Number(event.target.value); persist(); });
+    query('[data-ui-area]').addEventListener('change', showArea);
+    query('[data-area-enabled]').addEventListener('change', event => { preferences.effects.areas[query('[data-ui-area]').value].enabled = event.target.checked; persist(); });
+    for (const key of ['twinkles', 'sweeps', 'breathing', 'speed']) query(`[data-area-${key}]`).addEventListener('input', event => {
+        preferences.effects.areas[query('[data-ui-area]').value][key] = Number(event.target.value); persist();
+    });
     const reset = document.createElement('button'); reset.type = 'button'; reset.className = 'menu_button'; reset.textContent = 'Reset profile opacity';
     reset.addEventListener('click', () => { preferences.opacity[preferences.profile] = PROFILE_DEFAULTS[preferences.profile]; persist(); });
     query('[data-ui-opacity]').closest('label').after(reset);

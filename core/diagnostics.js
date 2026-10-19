@@ -6,7 +6,7 @@ export const EVENTS = Object.freeze([
     'host.generation_coverage', 'host.generation_after_commands', 'generation.lifecycle',
     'ui.action', 'ui.scroll', 'ui.theme', 'ig.setting_snapshot', 'ig.setting_change', 'ig.configuration',
     'recorder', 'integration', 'outfit.change', 'background.select',
-    'background.automatic', 'background.observed', 'animation.swap', 'animation.background', 'animation.motion', 'motion.lifecycle', 'sprite.lifecycle',
+    'background.automatic', 'background.observed', 'animation.swap', 'animation.background', 'animation.motion', 'motion.lifecycle', 'motion.coverage', 'sprite.lifecycle', 'sprite.inventory',
     'automation.execute', 'automation.api', 'context.injection', 'context.history_cleanup',
     'host.chat_changed', 'host.group_updated', 'host.generation_started',
     'host.generation_ended', 'host.generation_stopped', 'host.message_swiped',
@@ -23,7 +23,7 @@ const enumFields = {
     layout: ['desktop', 'mobile'], area: ['settings', 'live_tuning', 'outfit_picker', 'background_picker', 'library'],
     ownership: ['shared', 'explicit', 'inherited'], beforeOwnership: ['shared', 'explicit', 'inherited'],
     generationType: ['normal', 'quiet', 'impersonate', 'regenerate', 'swipe', 'continue', 'other'],
-    stage: ['after_commands', 'completion_not_observed', 'observed', 'source_changed', 'loaded', 'load_error', 'visibility_changed', 'removed', 'load_wait', 'entrance_check', 'restart'],
+    stage: ['after_commands', 'completion_not_observed', 'observed', 'source_changed', 'loaded', 'load_error', 'visibility_changed', 'removed', 'load_wait', 'entrance_check', 'restart', 'native_wait', 'node_replaced', 'native_state'],
     source: ['manual', 'automatic', 'other'],
     kind: ['outfit', 'background', 'other'],
     mode: ['cross', 'sequential', 'prompt', 'api', 'other'],
@@ -31,12 +31,12 @@ const enumFields = {
     outcome: ['applied', 'completed', 'skipped', 'cancelled', 'failed', 'requested', 'unobserved', 'pending'],
     reason: ['unavailable', 'scope_or_lock', 'stale', 'unchanged', 'disabled', 'invalid', 'error', 'other',
         'superseded', 'chat_changed', 'layout_changed', 'viewport_changed', 'motion_changed', 'disabled_scene', 'unknown',
-        'source_changed', 'visibility_changed', 'unsupported', 'removed', 'zero_motion', 'finished', 'animation_api', 'user_cancelled', 'dry_run', 'overlapping_start', 'ambiguous_terminal', 'recording_stopped', 'recording_exported', 'end_event', 'stop_event'],
+        'native_transition', 'node_replaced', 'entrance_active', 'settings_changed', 'source_changed', 'visibility_changed', 'unsupported', 'removed', 'zero_motion', 'finished', 'animation_api', 'user_cancelled', 'dry_run', 'overlapping_start', 'ambiguous_terminal', 'recording_stopped', 'recording_exported', 'end_event', 'stop_event'],
     status: ['absent', 'legacy', 'instrumented', 'starting', 'ready', 'partial', 'failed', 'blocked', 'other'],
 };
-const numberFields = new Set(['count', 'durationMs', 'inMs', 'outMs', 'characters', 'commands', 'issues', 'applied', 'skipped', 'failed', 'depth', 'promptCharacters', 'messageCount']);
+const numberFields = new Set(['count', 'durationMs', 'inMs', 'outMs', 'characters', 'commands', 'issues', 'applied', 'skipped', 'failed', 'depth', 'promptCharacters', 'messageCount', 'visibleCount', 'readyCount', 'nativeCount']);
 const booleanFields = new Set(['enabled', 'automatic', 'dryRun', 'dryRunKnown', 'reducedMotion', 'committed', 'changed',
-    'startAvailable', 'endAvailable', 'stopAvailable', 'afterCommandsAvailable', 'preview', 'loop', 'exiting', 'visible', 'imageReady']);
+    'startAvailable', 'endAvailable', 'stopAvailable', 'afterCommandsAvailable', 'preview', 'loop', 'exiting', 'visible', 'imageReady', 'nativeTransition', 'motionHooks', 'spriteObserver']);
 function safeFields(input) {
     const result = {};
     if (!input || typeof input !== 'object') return result;
@@ -61,7 +61,7 @@ export function createRecorder({ capacity = 10000, now = () => performance.now()
     let active = false, session = 0, origin = 0, serial = 0, operation = 0, dropped = 0;
     let revision = 0, summarized = 0, attentionCount = 0, cancelledCount = 0, attentionDropped = 0;
     let unobservedCount = 0;
-    const routine = new Map(), attention = [];
+    const routine = new Map(), hiddenErrors = new Map(), attention = [];
     let actionContext = null;
     const currentCause = () => actionContext && (!actionContext.event || actionContext.event.eventPhase > 0) ? actionContext.id : null;
     let buffer = new Array(capacity), head = 0, size = 0;
@@ -70,6 +70,19 @@ export function createRecorder({ capacity = 10000, now = () => performance.now()
         const fields = safeFields(data), elapsedMs = Math.max(0, Math.round(now() - origin));
         const isAttention = needsAttention(fields);
         if (isAttention) routine.clear();
+        const hiddenError = event === 'sprite.lifecycle' && phase === 'detail' && op !== undefined && fields.stage === 'load_error' && fields.visible === false && isAttention;
+        if (op !== undefined && !hiddenError) hiddenErrors.delete(op);
+        if (hiddenError) {
+            const signature = JSON.stringify(fields), prior = hiddenErrors.get(op);
+            if (prior?.signature === signature) {
+                const record = prior.record;
+                record.count = (record.count || 1) + 1; record.lastElapsedMs = elapsedMs;
+                record.phase = 'summary'; attentionCount++; summarized++; revision++;
+                const retained = attention.find(row => row.sequence === record.sequence);
+                if (retained) Object.assign(retained, record);
+                return;
+            }
+        }
         const summarize = phase === 'event' && !isAttention && (routineEvents.has(event) || (event.startsWith('animation.') && fields.outcome === 'skipped' && fields.reason === 'disabled'));
         if (summarize) {
             const { count, durationMs, ...identity } = fields;
@@ -86,6 +99,7 @@ export function createRecorder({ capacity = 10000, now = () => performance.now()
         }
         const record = { sequence: ++serial, elapsedMs, event, phase, ...fields };
         if (op !== undefined) record.operation = op;
+        if (hiddenError) hiddenErrors.set(op, { signature: JSON.stringify(fields), record });
         if (cause !== null && cause !== op) record.causeOperation = cause;
         if (summarize) routine.set(event, { signature: JSON.stringify(Object.fromEntries(Object.entries(fields).filter(([key]) => !['count', 'durationMs'].includes(key)))), record });
         if (isAttention) {
@@ -98,6 +112,7 @@ export function createRecorder({ capacity = 10000, now = () => performance.now()
         if (size < capacity) buffer[(head + size++) % capacity] = record;
         else {
             const evicted = buffer[head];
+            if (hiddenErrors.get(evicted.operation)?.record === evicted) hiddenErrors.delete(evicted.operation);
             for (const [key, value] of routine) if (value.record === evicted) routine.delete(key);
             buffer[head] = record; head = (head + 1) % capacity; dropped++;
         }
@@ -105,7 +120,7 @@ export function createRecorder({ capacity = 10000, now = () => performance.now()
     }
     function entries() { return Array.from({ length: size }, (_, i) => ({ ...buffer[(head + i) % capacity] })); }
     function clear() {
-        session++; actionContext = null; routine.clear(); attention.length = 0;
+        session++; actionContext = null; routine.clear(); hiddenErrors.clear(); attention.length = 0;
         buffer = new Array(capacity); head = size = serial = operation = dropped = 0;
         summarized = attentionCount = cancelledCount = attentionDropped = 0; origin = now(); revision++;
         unobservedCount = 0;
@@ -149,7 +164,7 @@ export function createRecorder({ capacity = 10000, now = () => performance.now()
     return {
         api,
         start() { if (!active) { session++; routine.clear(); if (!serial) origin = now(); active = true; append('recorder', 'event', { enabled: true }); } },
-        stop() { if (active) { append('recorder', 'event', { enabled: false }); active = false; routine.clear(); actionContext = null; session++; } },
+        stop() { if (active) { append('recorder', 'event', { enabled: false }); active = false; routine.clear(); hiddenErrors.clear(); actionContext = null; session++; } },
         clear, entries,
         attentionEntries() { return attention.map(record => ({ ...record })); },
         resize(nextCapacity) {
@@ -158,7 +173,7 @@ export function createRecorder({ capacity = 10000, now = () => performance.now()
             dropped += all.length - retained.length; capacity = nextCapacity;
             buffer = new Array(capacity); head = 0; size = retained.length;
             retained.forEach((record, index) => { buffer[index] = record; });
-            routine.clear(); revision++;
+            routine.clear(); hiddenErrors.clear(); revision++;
         },
         stats() { return { active, count: size, dropped, capacity, summarized, attentionCount, cancelledCount, unobservedCount, attentionRetained: attention.length, attentionDropped, revision }; },
         export(versions = {}) {

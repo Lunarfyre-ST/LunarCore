@@ -1,6 +1,7 @@
 import { connectImmersiveGroups } from '../../integrations/immersivegroups.js';
 import { readDebugPreferences, saveDebugPreferences } from '../../core/debug-preferences.js';
 import { createSettingsDrawer } from '../../core/settings-panel.js';
+import { matchesFilter } from '../../core/record-analysis.js';
 import { VERSION } from '../../core/version.js';
 import { createLogArchive, createAutoSave } from '../../core/log-archive.js';
 
@@ -21,8 +22,8 @@ export function mountDebug(recorder, context, target, { onStatus = () => {} } = 
         <p>Repeated routine activity is summarized. The newest 200 attention records survive main-buffer rollover. Recordings stay in memory unless you enable local auto-save. Setting names, configuration values and execution states are recorded. API keys, personal/character names, user input and model output are excluded.</p>
         <p data-status role="status"></p><p data-integration></p>
         <div class="lunar-debug-actions"><button type="button" class="menu_button" data-export>Export JSON</button><button type="button" class="menu_button" data-clear>Clear recording</button></div>
-        <label>Event filter <select data-filter><option value="">All events</option><option value="attention">Attention records</option><option value="ui.">UI actions / scrolling</option><option value="ig.setting">Configuration</option><option value="outfit.">Outfits</option><option value="background.">Backgrounds</option><option value="animation.">Animations</option><option value="context.">Context injection</option><option value="automation.">Automation</option><option value="host.">SillyTavern</option><option value="ig.">IG changes</option></select></label>
-        <pre data-events aria-label="Recent diagnostic events"></pre>`;
+        <label>Event filter <select data-filter><option value="">All events</option><option value="review">Needs review (not automatically bugs)</option><option value="loading">Sprite loading / entrances</option><option value="attention">Attention records</option><option value="ui.">UI actions / scrolling</option><option value="ig.setting">Configuration</option><option value="outfit.">Outfits</option><option value="background.">Backgrounds</option><option value="animation.">Animations</option><option value="context.">Context injection</option><option value="automation.">Automation</option><option value="host.">SillyTavern</option><option value="ig.">IG changes</option></select></label>
+        <p>Needs review highlights failures, unsupported motion and inconclusive interruptions. Expected activity remains in All events and exports; nearby records do not prove causation.</p><pre data-events aria-label="Recent diagnostic events"></pre>`;
     target.append(panel);
     const query = selector => panel.querySelector(selector);
     let disconnect = null, lastSignature = '', disposed = false, archiveView = 0;
@@ -81,7 +82,7 @@ export function mountDebug(recorder, context, target, { onStatus = () => {} } = 
         if (signature === lastSignature) return;
         if (!query('[data-events]').getClientRects().length) return;
         lastSignature = signature;
-        const rows = filter === 'attention' ? recorder.attentionEntries() : recorder.entries().filter(row => !filter || row.event.startsWith(filter));
+        const rows = filter === 'attention' ? recorder.attentionEntries() : recorder.entries().filter(row => matchesFilter(row, filter));
         query('[data-events]').textContent = rows.slice(-60).map(row => JSON.stringify(row)).join('\n');
     }
     query('[data-record]').addEventListener('change', event => {

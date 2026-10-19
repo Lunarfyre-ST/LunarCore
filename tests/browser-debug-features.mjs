@@ -7,6 +7,7 @@ export default async function debugFeatures(browser, url, prefix) {
     await page.goto(url);
     await page.locator('.lunar-core > summary').click(); await page.locator('.lunar-debug > summary').click();
     assert.equal(await page.locator('[data-auto-save]').isChecked(), false);
+    await page.evaluate(() => { ImmersiveGroups.motionDiagnosticsProtocol = 1; });
     await page.locator('[data-record]').check();
     await page.locator('[data-auto-save]').check();
     await page.waitForFunction(() => document.querySelector('[data-save-status]').textContent === 'Saved locally.');
@@ -47,6 +48,12 @@ export default async function debugFeatures(browser, url, prefix) {
     assert.ok(data.events.some(row => row.event === 'animation.motion' && row.outcome === 'completed'));
     for (const stage of ['observed', 'loaded', 'source_changed', 'visibility_changed', 'load_error', 'removed']) assert.ok(data.events.some(row => row.event === 'sprite.lifecycle' && row.stage === stage), stage);
     assert.ok(data.events.some(row => row.setting === 'entranceMotionEnabled' && row.value === true));
+    assert.ok(data.events.some(row => row.event === 'motion.coverage' && row.motionHooks === true));
+    assert.ok(data.events.some(row => row.event === 'sprite.inventory' && row.count > 0));
+    await page.locator('[data-filter]').selectOption('review');
+    await page.waitForFunction(() => document.querySelector('[data-events]').textContent.includes('load_error'));
+    await page.locator('[data-filter]').selectOption('loading');
+    await page.waitForFunction(() => document.querySelector('[data-events]').textContent.includes('sprite.lifecycle'));
     assert.equal(JSON.stringify(data).includes('PRIVATE'), false);
     await page.locator('[data-open-logs]').click();
     await page.waitForFunction(() => document.querySelector('[data-log-list]').textContent.includes('Saved log'));

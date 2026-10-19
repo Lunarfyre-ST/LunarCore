@@ -30,7 +30,7 @@ theme without rewriting it; layouts, images and background selection are untouch
 
 **Night effects** can be enabled separately from recoloring: starlight twinkles,
 occasional shining sweeps and a breathing border glow, with intensity and speed
-controls. Effects start off, remain on settings headers, pause offscreen/in
+controls plus separate area toggles and adjustments for chat/Sheld, composer, navigation, panels, dialogs and settings. Effects start off, pause offscreen/in
 hidden tabs, and stop under reduced motion. Choices are saved. See the
 [LunarUI guide](docs/LUNAR_UI.md) for scope, settings and compatibility details.
 
