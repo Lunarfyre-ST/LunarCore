@@ -103,12 +103,39 @@ try {
     assert.equal(await page.locator('[data-area-speed]').inputValue(), '2');
     assert.equal(await page.evaluate(() => ctx.extensionSettings.LunarCore.debug.capacity), 5000);
     await page.setViewportSize({ width: 390, height: 1000 });
+    await page.waitForFunction(() => [...document.querySelectorAll('.lunar-ambient-local')].every(node => node.clientWidth <= innerWidth));
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.evaluate(() => document.documentElement.style.setProperty('--SmartThemeQuoteColor', '#daad66'));
     await page.locator('[data-moonlight]').uncheck();
     assert.equal(await page.evaluate(() => getComputedStyle(document.body).getPropertyValue('--SmartThemeQuoteColor').trim()), '#daad66');
     assert.equal(await page.evaluate(() => document.body.classList.contains('lunar-idle-effects')), true); // Independent of recoloring.
     assert.equal(await page.locator('#draft').inputValue(), 'fixture input');
+    // Native-shaped layout: effects remain visible after the Extensions drawer closes.
+    await page.locator('[data-ui-intensity]').evaluate(node => { node.value = 35; node.dispatchEvent(new Event('input', { bubbles: true })); });
+    await page.locator('[data-area-twinkles]').evaluate(node => { node.value = 25; node.dispatchEvent(new Event('input', { bubbles: true })); });
+    await page.evaluate(() => {
+        const sheld = document.createElement('div'); sheld.id = 'sheld';
+        sheld.style.cssText = 'position:fixed;left:30px;top:50px;width:300px;height:600px;display:flex;flex-direction:column;overflow:hidden;transform:translateZ(0);background:#101522;z-index:30';
+        const chat = document.getElementById('chat'); chat.style.cssText = 'flex:1;overflow:auto;z-index:30;backdrop-filter:blur(10px);background:#101522';
+        const form = document.createElement('div'); form.id = 'form_sheld'; form.style.cssText = 'position:relative;z-index:30';
+        form.append(document.getElementById('send_form')); sheld.append(chat, form); document.body.append(sheld);
+        document.querySelector('main').style.display = 'none'; window.scrollTo(0, 0);
+    });
+    await page.waitForFunction(() => document.querySelector('#sheld > [data-lunar-area="chat"].lunar-ambient-visible'));
+    assert.equal(await page.locator('[data-lunar-area="chat"] .lunar-star').count(), 16);
+    assert.equal(await page.locator('#chat .lunar-ambient, #send_form .lunar-ambient').count(), 0);
+    assert.equal(await page.locator('#form_sheld > [data-lunar-area="composer"]').count(), 1);
+    const visibleStar = await page.locator('[data-lunar-area="chat"] .lunar-star-6').evaluate(node => {
+        const animation = node.getAnimations()[0], timing = animation.effect.getTiming();
+        animation.pause(); animation.currentTime = timing.delay + timing.duration * 5.55;
+        const bounds = node.getBoundingClientRect(), host = document.getElementById('sheld').getBoundingClientRect();
+        return { opacity: Number(getComputedStyle(node).opacity), inset: bounds.top - host.top, height: host.height,
+            frameZ: Number(getComputedStyle(node.parentElement).zIndex) };
+    });
+    assert.ok(visibleStar.opacity > 0.2, 'Default Sheld twinkles must have a visible peak, not ~7% opacity');
+    assert.ok(visibleStar.inset > 20 && visibleStar.inset < visibleStar.height - 20, 'Twinkles must also reach the interior');
+    assert.ok(visibleStar.frameZ > 30, 'Frame must sit above native chat/composer stacking contexts');
+    await page.screenshot({ path: path.join(root, 'tests/artifacts/lunar-sheld.png') });
     await page.evaluate(() => disposeUI());
     assert.equal(await page.locator('.lunar-ambient').count(), 0);
     assert.equal(await page.evaluate(() => [...document.body.classList].some(name => name.startsWith('lunar-'))), false);

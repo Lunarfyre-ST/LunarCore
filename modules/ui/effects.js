@@ -13,7 +13,8 @@ export function createNightEffects({ doc = document, win = window, onStateChange
     function tune(entry) {
         const local = options.areas[entry.area.id];
         for (const key of ['twinkles', 'sweeps', 'breathing']) {
-            entry.overlay.style.setProperty(`--lunar-${key}-strength`, String(options.intensity / 100 * local[key] / 100));
+            // Perceptual brightness keeps reduced area strengths visible on dark surfaces.
+            entry.overlay.style.setProperty(`--lunar-${key}-strength`, String(Math.sqrt(options.intensity / 100 * local[key] / 100)));
             entry.overlay.classList.toggle(`lunar-no-${key}`, local[key] === 0);
         }
         for (const [key, base] of [['twinkle', 10], ['sweep', 18], ['breath', 12]]) {
@@ -22,6 +23,13 @@ export function createNightEffects({ doc = document, win = window, onStateChange
     }
     function position(host, entry) {
         if (!entry.area.portal) return;
+        if (entry.local) {
+            // Native stacking/blur contexts own this frame. Counter scroll without
+            // inserting decoration into messages, the chat list or the send form.
+            const z = Math.max(0, ...[...host.children].filter(node => node !== entry.overlay).map(node => Number.parseInt(win.getComputedStyle(node).zIndex, 10) || 0));
+            Object.assign(entry.overlay.style, { left: `${host.scrollLeft}px`, top: `${host.scrollTop}px`, width: `${host.clientWidth}px`, height: `${host.clientHeight}px`, zIndex: String(z + 1) });
+            return;
+        }
         const rect = host.getBoundingClientRect();
         let left = Math.max(0, rect.left), top = Math.max(0, rect.top);
         let right = Math.min(win.innerWidth, rect.right), bottom = Math.min(win.innerHeight, rect.bottom), z = 0;
@@ -44,18 +52,31 @@ export function createNightEffects({ doc = document, win = window, onStateChange
         if (hosts.has(host) || hosts.size >= 80 || !host.isConnected) return;
         const overlay = doc.createElement('span'); overlay.className = 'lunar-ambient'; overlay.dataset.lunarArea = area.id;
         overlay.setAttribute('aria-hidden', 'true'); overlay.setAttribute('inert', '');
-        for (let i = 0; i < 4; i++) {
+        const starCount = ['chat', 'panels', 'dialogs'].includes(area.id) ? 16 : area.id === 'composer' ? 8 : 4;
+        for (let i = 0; i < starCount; i++) {
             const star = doc.createElement('span'); star.className = `lunar-star lunar-star-${i}`;
+            if (i >= 4) {
+                star.style.left = `${8 + ((i - 4) * 37 % 84)}%`;
+                star.style.top = `${12 + ((i - 4) * 23 % 76)}%`;
+            }
             star.style.setProperty('--lunar-star-delay', `-${i * 3 + hosts.size % 11}s`); overlay.append(star);
         }
         for (const className of ['lunar-sheen', 'lunar-halo']) {
             const layer = doc.createElement('span'); layer.className = className; overlay.append(layer);
         }
-        const addedClass = !area.portal && win.getComputedStyle(host).position === 'static' && !host.classList.contains('lunar-effects-host');
+        const local = area.portal && host.matches('#sheld, #form_sheld, #top-settings-holder, .drawer-content, #left-nav-panel, #right-nav-panel');
+        const addedClass = (!area.portal || local) && win.getComputedStyle(host).position === 'static' && !host.classList.contains('lunar-effects-host');
         overlay.style.setProperty('--lunar-sweep-delay', `-${hosts.size % 7 * 2}s`);
-        if (area.portal) { overlay.classList.add('lunar-ambient-frame'); doc.body.append(overlay); }
+        if (area.portal) {
+            overlay.classList.add('lunar-ambient-frame');
+            if (local) {
+                overlay.classList.add('lunar-ambient-local');
+                if (addedClass) host.classList.add('lunar-effects-host');
+                host.append(overlay);
+            } else doc.body.append(overlay);
+        }
         else { if (addedClass) host.classList.add('lunar-effects-host'); host.append(overlay); }
-        const entry = { overlay, addedClass, area }; hosts.set(host, entry); tune(entry); position(host, entry);
+        const entry = { overlay, addedClass, area, local }; hosts.set(host, entry); tune(entry); position(host, entry);
         resize?.observe(host);
         if (visibility) visibility.observe(host); else overlay.classList.add('lunar-ambient-visible');
     }

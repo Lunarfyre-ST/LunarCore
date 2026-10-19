@@ -97,12 +97,13 @@ body.lunar-twilight .lunar-icon { color: #a797c6; filter: drop-shadow(0 0 3px rg
 .lunar-ambient { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none; user-select: none; }
 .lunar-ambient > span { pointer-events: none; }
 .lunar-ambient.lunar-ambient-frame { position: fixed; inset: auto; }
+.lunar-ambient.lunar-ambient-local { position: absolute; z-index: 1; max-width: 100%; max-height: 100%; }
 /* Keep broad surface sweeps on the frame, away from chat and input contents. */
 .lunar-ambient-frame .lunar-sheen { mask-image: linear-gradient(to bottom, #000 0 3px, transparent 3px calc(100% - 3px), #000 calc(100% - 3px)); }
 .lunar-ambient.lunar-no-twinkles .lunar-star,
 .lunar-ambient.lunar-no-sweeps .lunar-sheen,
 .lunar-ambient.lunar-no-breathing .lunar-halo { animation: none; }
-.lunar-star { position: absolute; width: 5px; height: 5px; background: rgb(var(--lunar-accent-rgb, 135,151,193)); clip-path: polygon(50% 0,61% 38%,100% 50%,61% 62%,50% 100%,39% 62%,0 50%,39% 38%); opacity: 0; }
+.lunar-star { position: absolute; width: 7px; height: 7px; background: radial-gradient(circle, #eef3ff 0 12%, rgb(var(--lunar-accent-rgb, 135,151,193)) 65%); clip-path: polygon(50% 0,61% 38%,100% 50%,61% 62%,50% 100%,39% 62%,0 50%,39% 38%); opacity: 0; }
 .lunar-star-0 { left: 16%; top: 3px; --lunar-star-delay: -2s; }
 .lunar-star-1 { left: 43%; bottom: 3px; --lunar-star-delay: -7s; }
 .lunar-star-2 { left: 68%; top: 4px; --lunar-star-delay: -11s; }

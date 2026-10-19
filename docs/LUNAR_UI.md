@@ -23,7 +23,7 @@ Custom CSS can still override the pack's styles.
 
 ## Idle effects
 
-- **Starlight twinkles:** small, staggered stars along UI edges.
+- **Starlight twinkles:** staggered stars across larger surfaces, with edge stars on headers.
 - **Shining sweeps:** occasional soft highlights passing across headers or surface edges.
 - **Breathing glow:** a slow change in a decorative border's opacity.
 
@@ -35,13 +35,19 @@ sprite/background animations and do not modify those preferences.
 Area tuning covers Chat / Sheld, the message composer, navigation, side panels,
 dialogs and settings headers. Each has an enable switch, independent twinkle,
 sweep and glow strengths (0–100%), and a speed multiplier (0.25–2×). Strengths
-multiply global intensity; zero disables that effect locally. Speeds multiply
-global speed. Chat twinkles default to 25% of global strength, composer to 35%.
+multiply global intensity before a square-root brightness curve, so low settings
+remain visible; zero disables that effect locally. Speeds multiply global speed.
+Chat twinkles default to 25% of global strength, composer to 35%.
 The master switch and global effect switches apply to every area.
 
 Surface selectors and defaults live in `modules/ui/areas.js`. Chat, composer,
-navigation and panels use external fixed frames aligned/clipped to their native
-bounds, with sweeps masked to edges. No children are added to chat or forms.
+navigation and panels use frames inside their native chrome containers, keeping
+them in the native stacking and blur contexts. Chat uses `#sheld` and composer
+uses `#form_sheld`; generic fixtures without those wrappers use external fixed
+frames. Sweeps are masked to edges. No children are added to the chat list or
+send form. Large surfaces have 16 stars distributed through their interior and
+edges, composer has eight, and headers/navigation have four. Stars have a brighter
+core; low strength no longer multiplies down to nearly invisible opacity.
 Dialogs and headers use inert local layers. At most 80 surfaces are decorated;
 major surfaces precede headers. Pointer input and assistive technology ignore
 these layers. Resize, scroll, panel changes and dragging refresh their geometry.

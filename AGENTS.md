@@ -4,7 +4,7 @@
 
 LunarCore is one modular SillyTavern UI extension. LunarDebug is an optional
 metadata recorder; LunarUI offers Moonlight Blue/Twilight recolors and optional
-night-themed header effects. Do not
+night-themed effects with independent area controls. Do not
 describe unimplemented UI, state or memory features as available.
 
 Read [README.md](README.md) for usage, [docs/diagnostics.md](docs/diagnostics.md)
