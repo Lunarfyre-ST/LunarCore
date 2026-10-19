@@ -6,7 +6,7 @@ export const EVENTS = Object.freeze([
     'host.generation_coverage', 'host.generation_after_commands', 'generation.lifecycle',
     'ui.action', 'ui.scroll', 'ui.theme', 'ig.setting_snapshot', 'ig.setting_change', 'ig.configuration',
     'recorder', 'integration', 'outfit.change', 'background.select',
-    'background.automatic', 'background.observed', 'animation.swap', 'animation.background',
+    'background.automatic', 'background.observed', 'animation.swap', 'animation.background', 'animation.motion', 'motion.lifecycle', 'sprite.lifecycle',
     'automation.execute', 'automation.api', 'context.injection', 'context.history_cleanup',
     'host.chat_changed', 'host.group_updated', 'host.generation_started',
     'host.generation_ended', 'host.generation_stopped', 'host.message_swiped',
@@ -17,11 +17,13 @@ export const EVENTS = Object.freeze([
 ]);
 const enumFields = {
     theme: ['moonlight_blue'],
+    effect: ['expression', 'scene', 'entrance', 'speaking', 'breathing', 'reaction', 'focus', 'backgroundPan'],
+    renderer: ['desktop', 'mobile', 'solo', 'other'],
     action: ACTIONS, setting: Object.keys(SETTINGS), profile: ['shared', 'desktop', 'mobile'],
     layout: ['desktop', 'mobile'], area: ['settings', 'live_tuning', 'outfit_picker', 'background_picker', 'library'],
     ownership: ['shared', 'explicit', 'inherited'], beforeOwnership: ['shared', 'explicit', 'inherited'],
     generationType: ['normal', 'quiet', 'impersonate', 'regenerate', 'swipe', 'continue', 'other'],
-    stage: ['after_commands', 'completion_not_observed'],
+    stage: ['after_commands', 'completion_not_observed', 'observed', 'source_changed', 'loaded', 'load_error', 'visibility_changed', 'removed', 'load_wait', 'entrance_check', 'restart'],
     source: ['manual', 'automatic', 'other'],
     kind: ['outfit', 'background', 'other'],
     mode: ['cross', 'sequential', 'prompt', 'api', 'other'],
@@ -29,12 +31,12 @@ const enumFields = {
     outcome: ['applied', 'completed', 'skipped', 'cancelled', 'failed', 'requested', 'unobserved', 'pending'],
     reason: ['unavailable', 'scope_or_lock', 'stale', 'unchanged', 'disabled', 'invalid', 'error', 'other',
         'superseded', 'chat_changed', 'layout_changed', 'viewport_changed', 'motion_changed', 'disabled_scene', 'unknown',
-        'user_cancelled', 'dry_run', 'overlapping_start', 'ambiguous_terminal', 'recording_stopped', 'recording_exported', 'end_event', 'stop_event'],
+        'source_changed', 'visibility_changed', 'unsupported', 'removed', 'zero_motion', 'finished', 'animation_api', 'user_cancelled', 'dry_run', 'overlapping_start', 'ambiguous_terminal', 'recording_stopped', 'recording_exported', 'end_event', 'stop_event'],
     status: ['absent', 'legacy', 'instrumented', 'starting', 'ready', 'partial', 'failed', 'blocked', 'other'],
 };
 const numberFields = new Set(['count', 'durationMs', 'inMs', 'outMs', 'characters', 'commands', 'issues', 'applied', 'skipped', 'failed', 'depth', 'promptCharacters', 'messageCount']);
 const booleanFields = new Set(['enabled', 'automatic', 'dryRun', 'dryRunKnown', 'reducedMotion', 'committed', 'changed',
-    'startAvailable', 'endAvailable', 'stopAvailable', 'afterCommandsAvailable']);
+    'startAvailable', 'endAvailable', 'stopAvailable', 'afterCommandsAvailable', 'preview', 'loop', 'exiting', 'visible', 'imageReady']);
 function safeFields(input) {
     const result = {};
     if (!input || typeof input !== 'object') return result;
@@ -52,7 +54,7 @@ function safeFields(input) {
 const safeVersion = value => typeof value === 'string' && /^\d{1,4}\.\d{1,4}\.\d{1,4}$/.test(value) ? value : null;
 export const needsAttention = record => record.outcome === 'failed' || record.reason === 'error' ||
     ['failed', 'partial', 'blocked'].includes(record.status) || record.failed > 0 || record.issues > 0;
-const routineEvents = new Set(['context.injection', 'context.history_cleanup', 'ig.layout', 'ig.editor_layout', 'ui.scroll', 'host.settings_updated']);
+const routineEvents = new Set(['context.injection', 'context.history_cleanup', 'motion.lifecycle', 'ig.layout', 'ig.editor_layout', 'ui.scroll', 'host.settings_updated']);
 
 export function createRecorder({ capacity = 10000, now = () => performance.now() } = {}) {
     if (!Number.isInteger(capacity) || capacity < 1 || capacity > 50000) throw new RangeError('Invalid capacity');

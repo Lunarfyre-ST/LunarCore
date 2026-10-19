@@ -64,10 +64,13 @@ test('resize retains newest records, reports removals, and preserves live operat
 test('preferences validate capacity and persist only opt-in settings', () => {
     let saves = 0;
     const context = { extensionSettings: {}, saveSettingsDebounced() { saves++; } };
-    assert.deepEqual(readDebugPreferences(context), { capacity: 10000, autoStart: false });
+    assert.deepEqual(readDebugPreferences(context), { capacity: 10000, autoStart: false, autoSave: false });
     saveDebugPreferences(context, { capacity: 20000, autoStart: true, events: ['PRIVATE'] });
     assert.equal(saves, 1); assert.equal(JSON.stringify(context.extensionSettings).includes('PRIVATE'), false);
-    assert.deepEqual(readDebugPreferences(context), { capacity: 20000, autoStart: true });
+    assert.deepEqual(readDebugPreferences(context), { capacity: 20000, autoStart: true, autoSave: false });
     context.extensionSettings.LunarCore.debug.capacity = Infinity;
     assert.equal(readDebugPreferences(context).capacity, 10000);
+    saveDebugPreferences(context, { capacity: 10000, autoStart: false, autoSave: true, records: ['PRIVATE'] });
+    assert.equal(readDebugPreferences(context).autoSave, true);
+    assert.equal(JSON.stringify(context.extensionSettings).includes('PRIVATE'), false);
 });

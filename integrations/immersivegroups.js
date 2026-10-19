@@ -1,5 +1,6 @@
 import { createActivity, createConfigurationTracker, connectActivity } from './activity.js';
 import { connectGeneration } from './generation.js';
+import { connectSprites } from './sprites.js';
 
 const hostEvents = {
     CHAT_CHANGED: 'chat_changed', GROUP_CHAT_CHANGED: 'chat_changed', GROUP_UPDATED: 'group_updated',
@@ -39,6 +40,7 @@ export function connectImmersiveGroups(api, context, { win = window, doc = docum
         else api.emit(`ig.${suffix}`);
     });
     cleanups.push(connectActivity(api, activity, tracker, doc));
+    cleanups.push(connectSprites(api, { win, doc }));
     const timer = setInterval(() => { if (connected) { tracker.scan(); activity.flush(); } }, 500);
     cleanups.push(() => clearInterval(timer));
     // The CSS URL is compared locally and never enters the recorder. This

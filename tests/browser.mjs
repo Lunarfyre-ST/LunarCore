@@ -3,6 +3,7 @@ import http from 'node:http';
 import { readFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
+import debugFeatures from './browser-debug-features.mjs';
 
 const root = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const igRoot = process.env.IG_SOURCE_ROOT || path.resolve(root, '../ImmersiveGroups');
@@ -34,6 +35,9 @@ await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 let browser;
 try {
     browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH });
+    if (process.env.LUNAR_DEBUG_ONLY === '1') {
+        await debugFeatures(browser, `http://127.0.0.1:${server.address().port}`, prefix);
+    } else {
     const page = await browser.newPage({ viewport: { width: 1000, height: 850 }, reducedMotion: 'no-preference' });
     const errors = []; page.on('pageerror', error => errors.push(error.message));
     const openDebug = async () => {
@@ -68,7 +72,7 @@ try {
     assert.equal(await page.evaluate(() => document.querySelector('.prome-vn-settings').previousElementSibling === document.querySelector('.lunar-core')), true);
     assert.equal(await page.locator('.lunar-core').evaluate(node => node.open), false);
     await page.locator('.lunar-core > summary').click();
-    assert.equal(await page.locator('.lunar-version').textContent(), 'LunarCore 0.0.6');
+    assert.equal(await page.locator('.lunar-version').textContent(), 'LunarCore 0.0.7');
     assert.equal(await page.locator('.lunar-core > .lunar-drawer-content > details').count(), 2);
     await page.locator('.lunar-ui > summary').focus(); await page.keyboard.press('Enter');
     assert.equal(await page.locator('.lunar-ui').evaluate(node => node.open), true);
@@ -79,7 +83,7 @@ try {
     await moonlight.check();
     assert.equal(await page.evaluate(() => document.body.classList.contains('lunar-moonlight')), true);
     assert.equal(await page.evaluate(() => ctx.extensionSettings.LunarCore.ui.moonlightBlue), true);
-    assert.equal(await page.evaluate(() => getComputedStyle(document.body).getPropertyValue('--SmartThemeQuoteColor').trim()), '#9dd5ff');
+    assert.equal(await page.evaluate(() => getComputedStyle(document.body).getPropertyValue('--SmartThemeQuoteColor').trim()), '#a2b5cd');
     assert.equal(await page.evaluate(() => document.documentElement.style.getPropertyValue('--SmartThemeQuoteColor')), '#e0aa44');
     await mkdir(path.join(root, 'tests/artifacts'), { recursive: true });
     await page.screenshot({ path: path.join(root, 'tests/artifacts/lunar-moonlight.png') });
@@ -150,7 +154,7 @@ try {
     const json = JSON.parse(await readFile(await download.path(), 'utf8'));
     assert.equal(JSON.stringify(json).includes('PRIVATE'), false);
     assert.equal(json.schemaVersion, 4);
-    assert.equal(json.versions.lunarCore, '0.0.6');
+    assert.equal(json.versions.lunarCore, '0.0.7');
     assert.ok(json.events.some(row => row.event === 'ui.theme' && row.theme === 'moonlight_blue' && row.enabled === true));
     assert.ok(json.events.some(row => row.event === 'ig.setting_snapshot' && row.setting === 'outfitFadeIn' && row.value === 200));
     assert.ok(json.events.some(row => row.event === 'ig.setting_change' && row.before === 200 && row.after === 300 && row.count === 100));
@@ -235,5 +239,7 @@ try {
     assert.equal(await page.evaluate(() => document.body.classList.contains('lunar-moonlight')), false);
     assert.equal(await page.locator('.lunar-core').count(), 0);
     assert.deepEqual(errors, []);
+    await debugFeatures(browser, `http://127.0.0.1:${server.address().port}`, prefix);
     console.log('Browser regressions passed: privacy, summaries, adjustable limits, retained attention history, runtime failure detection, saved preferences, auto-start, action correlation, legacy warning, listener cleanup and real IG animation hooks.');
+}
 } finally { await browser?.close(); await new Promise(resolve => server.close(resolve)); }

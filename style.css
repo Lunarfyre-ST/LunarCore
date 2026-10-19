@@ -38,35 +38,78 @@
 .lunar-attention { font-size: 0.8em; color: #e3b75a; }
 
 .lunar-theme-toggle { display: flex; align-items: center; gap: 0.5em; margin-block: 0.6em; }
-.lunar-moonlight-preview {
+.lunar-theme-preview {
     display: flex; align-items: center; gap: 0.6em; margin-block: 0.75em;
-    padding: 0.7em; color: #e4f0ff; border: 1px solid #436681; border-radius: 8px;
-    background: linear-gradient(120deg, #193a59, #0b1729 65%);
-    box-shadow: 0 0 10px rgba(100,181,246,0.12);
+    padding: 0.9em; color: #cbd4e2; border: 1px solid #304158; border-radius: 8px;
+    background: linear-gradient(120deg, #152232, #090e19 75%);
+    box-shadow: 0 0 10px rgba(105,144,188,0.07);
 }
-.lunar-preview-moon { font-size: 1.5em; color: #9dd5ff; text-shadow: 0 0 7px rgba(100,181,246,0.5); }
-.lunar-preview-swatch { width: 1em; height: 1em; margin-inline-start: auto; border-radius: 50%; background: #88caff; box-shadow: 0 0 8px rgba(100,181,246,0.5); }
+.lunar-preview-moon { font-size: 1.5em; color: #a2b5cd; text-shadow: 0 0 7px rgba(105,144,188,0.25); }
+.lunar-preview-swatch { width: 0.8em; height: 0.8em; margin-inline-start: auto; border-radius: 50%; background: #7d98ba; box-shadow: 0 0 8px rgba(105,144,188,0.25); }
+.lunar-ui[data-profile="twilight"] .lunar-theme-preview { background: linear-gradient(120deg, rgba(39,29,58,0.7), rgba(9,8,20,0.58) 75%); border-color: #39304e; }
+.lunar-ui[data-profile="twilight"] :is(.lunar-preview-moon, .lunar-preview-swatch) { color: #b0a1ca; }
+.lunar-ui[data-profile="twilight"] .lunar-preview-swatch { background: #9884b8; box-shadow: 0 0 8px rgba(138,112,180,0.25); }
+.lunar-ui-field { display: grid; grid-template-columns: minmax(5em, 1fr) minmax(5em, 1fr) auto; gap: 0.6em; align-items: center; margin-block: 0.8em; }
+.lunar-ui-field select { grid-column: 2 / -1; color: var(--SmartThemeBodyColor, #ccd3df); background: var(--SmartThemeBlurTintColor, #101522); border: 1px solid var(--SmartThemeBorderColor, #304158); }
+.lunar-ui-field input { min-width: 0; width: 100%; }
+.lunar-ui-field output { font-variant-numeric: tabular-nums; min-width: 3.5em; text-align: end; }
+.lunar-effects-settings { min-width: 0; border: 1px solid var(--SmartThemeBorderColor, #304158); border-radius: 8px; margin-block: 0.9em; }
+.lunar-effects-settings legend { padding-inline: 0.4em; }
+.lunar-effects-options input:disabled { opacity: 0.45; }
 
 /* An opt-in CSS layer: never rewrite or snapshot the user's native theme.
    Removing this class restores the current underlying theme immediately. */
 body.lunar-moonlight {
-    --SmartThemeBodyColor: #e4f0ff;
-    --SmartThemeEmColor: #afcbe8;
-    --SmartThemeQuoteColor: #9dd5ff;
-    --SmartThemeBorderColor: #436681;
-    --SmartThemeBlurTintColor: rgba(9,19,35,0.94);
-    --SmartThemeChatTintColor: rgba(13,28,48,0.84);
+    --lunar-surface-rgb: 8,15,27;
+    --lunar-accent-rgb: 116,151,188;
+    --lunar-quote: #a2b5cd;
 }
-body.lunar-moonlight :is(#extensions_settings, #extensions_settings2) .inline-drawer-toggle.inline-drawer-header,
-body.lunar-moonlight .standoutHeader {
-    background-image: linear-gradient(348deg, rgba(157,213,255,0.2) 2%, rgba(39,73,108,0.32) 12%, rgba(6,16,30,0.92) 92%, rgba(100,181,246,0.6) 100%);
-    border-color: #436681;
-    box-shadow: 0 0 8px rgba(100,181,246,0.12);
+body.lunar-twilight {
+    --lunar-surface-rgb: 10,8,21;
+    --lunar-accent-rgb: 129,111,177;
+    --lunar-quote: #af9bc6;
 }
-body.lunar-moonlight :is(.drawer-content, .popup) { box-shadow: 0 0 14px rgba(100,181,246,0.14); }
-body.lunar-moonlight :is(.text_pole, select, .menu_button) { border-color: #436681; }
-body.lunar-moonlight :is(.menu_button:hover, .text_pole:focus-visible, select:focus-visible, button:focus-visible) {
-    outline-color: #9dd5ff;
-    box-shadow: 0 0 7px rgba(100,181,246,0.3);
+body.lunar-recolor {
+    --SmartThemeBodyColor: #ccd3df;
+    --SmartThemeEmColor: #969fb4;
+    --SmartThemeQuoteColor: var(--lunar-quote);
+    --SmartThemeBorderColor: rgba(var(--lunar-accent-rgb), 0.3);
+    --SmartThemeBlurTintColor: rgba(var(--lunar-surface-rgb), var(--lunar-panel-opacity, 0.82));
+    --SmartThemeChatTintColor: rgba(var(--lunar-surface-rgb), calc(var(--lunar-panel-opacity, 0.82) * 0.9));
 }
-body.lunar-moonlight input[type="checkbox"], body.lunar-moonlight input[type="range"] { accent-color: #88caff; }
+body.lunar-recolor :is(#extensions_settings, #extensions_settings2) .inline-drawer-toggle.inline-drawer-header,
+body.lunar-recolor .standoutHeader {
+    background-image: linear-gradient(348deg, rgba(var(--lunar-accent-rgb),0.07) 2%, rgba(var(--lunar-surface-rgb),0.25) 18%, rgba(var(--lunar-surface-rgb),var(--lunar-panel-opacity,0.82)) 94%, rgba(var(--lunar-accent-rgb),0.3) 100%);
+    border-color: rgba(var(--lunar-accent-rgb),0.3);
+    box-shadow: 0 0 8px rgba(var(--lunar-accent-rgb),0.06);
+}
+body.lunar-recolor :is(.drawer-content, .popup) { box-shadow: 0 0 14px rgba(var(--lunar-accent-rgb),0.08); }
+body.lunar-recolor :is(.text_pole, select, .menu_button) { border-color: rgba(var(--lunar-accent-rgb),0.3); }
+body.lunar-recolor :is(.menu_button:hover, .text_pole:focus-visible, select:focus-visible, button:focus-visible) {
+    outline-color: var(--lunar-quote);
+    box-shadow: 0 0 7px rgba(var(--lunar-accent-rgb),0.18);
+}
+body.lunar-recolor input[type="checkbox"], body.lunar-recolor input[type="range"] { accent-color: var(--lunar-quote); }
+body.lunar-twilight .lunar-icon { color: #a797c6; filter: drop-shadow(0 0 3px rgba(138,112,180,0.25)); }
+
+/* Decorative layers have no hit targets and never alter chat/media elements. */
+.lunar-effects-host { position: relative; }
+.lunar-ambient { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none; user-select: none; }
+.lunar-ambient > span { pointer-events: none; }
+.lunar-star { position: absolute; width: 5px; height: 5px; background: rgb(var(--lunar-accent-rgb, 135,151,193)); clip-path: polygon(50% 0,61% 38%,100% 50%,61% 62%,50% 100%,39% 62%,0 50%,39% 38%); opacity: 0; }
+.lunar-star-0 { left: 16%; top: 3px; --lunar-star-delay: -2s; }
+.lunar-star-1 { left: 43%; bottom: 3px; --lunar-star-delay: -7s; }
+.lunar-star-2 { left: 68%; top: 4px; --lunar-star-delay: -11s; }
+.lunar-star-3 { left: 87%; bottom: 3px; --lunar-star-delay: -5s; }
+.lunar-sheen { position: absolute; inset-block: 0; left: -40%; width: 35%; background: linear-gradient(110deg, transparent 15%, rgba(var(--lunar-accent-rgb,135,151,193),0.2) 50%, transparent 85%); opacity: 0; }
+.lunar-halo { position: absolute; inset: 0; border: 1px solid rgba(var(--lunar-accent-rgb,135,151,193),0.35); border-radius: inherit; opacity: 0; }
+.lunar-stars-on .lunar-star { animation: lunar-twinkle var(--lunar-twinkle-time, 13s) ease-in-out var(--lunar-star-delay) infinite; }
+.lunar-sweeps-on .lunar-sheen { animation: lunar-sweep var(--lunar-sweep-time, 24s) ease-in-out var(--lunar-sweep-delay, -6s) infinite; }
+.lunar-breathing-on .lunar-halo { animation: lunar-breathe var(--lunar-breath-time, 16s) ease-in-out infinite; }
+.lunar-idle-effects .lunar-ambient > span { animation-play-state: paused; }
+.lunar-idle-effects .lunar-ambient-visible > span { animation-play-state: running; }
+.lunar-effects-paused .lunar-ambient > span { animation-play-state: paused !important; }
+@keyframes lunar-twinkle { 0%, 38%, 72%, 100% { opacity: 0; transform: scale(0.5); } 55% { opacity: calc(var(--lunar-effect-strength,0.35) * 0.8); transform: scale(1); } }
+@keyframes lunar-sweep { 0%, 68% { opacity: 0; transform: translateX(0); } 74% { opacity: var(--lunar-effect-strength,0.35); } 94%, 100% { opacity: 0; transform: translateX(420%); } }
+@keyframes lunar-breathe { 0%, 100% { opacity: calc(var(--lunar-effect-strength,0.35) * 0.15); } 50% { opacity: calc(var(--lunar-effect-strength,0.35) * 0.65); } }
+@media (prefers-reduced-motion: reduce) { .lunar-ambient { display: none; } .lunar-ambient > span { animation: none !important; } }

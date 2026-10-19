@@ -10,6 +10,18 @@ export const SETTINGS = Object.freeze({
         [`${kind}FadeMode`, choice('cross', 'sequential')],
         [`${kind}FadeIn`, number(0, 3000)], [`${kind}FadeOut`, number(0, 3000)],
     ])),
+    ...Object.fromEntries([
+        ['expression', 0, 3000, 100], ['scene', 0, 3000, 100],
+        ['entrance', 0, 3000, 80], ['speaking', 0, 3000, 30],
+        ['breathing', 1000, 20000, 3], ['reaction', 0, 3000, 20],
+        ['focus', 0, 3000, 100], ['backgroundPan', 5000, 120000, 10],
+    ].flatMap(([id, min, max, strength]) => [
+        [`${id}MotionEnabled`, boolean], [`${id}MotionDuration`, number(min, max)],
+        [`${id}MotionStrength`, number(0, strength)],
+    ])),
+    entranceMotionStyle: choice('fade', 'slide'), breathingMotionScope: choice('speaker', 'all'),
+    reactionMotionStyle: choice('hop', 'nod', 'tilt', 'shake'),
+    backgroundPanMotionDirection: choice('left', 'right', 'up', 'down'),
     stageGap: number(0, 200), stageIdleOpacity: number(0, 100), stageFontSize: number(0, 100),
     spriteSpacingPercent: number(0, 300), layoutSpriteScale: number(0, 300),
     spriteOffsetY: number(-2000, 2000), stageOffsetX: number(-2000, 2000), stageOffsetY: number(-2000, 2000),

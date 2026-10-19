@@ -1,4 +1,4 @@
-# LunarCore v0.0.6 — Moonlight Blue preview
+# LunarCore v0.0.7 — Twilight and night effects
 
 LunarCore is a SillyTavern UI extension. Its first module is LunarDebug, an
 optional recorder for real-use diagnostic metadata, especially ImmersiveGroups.
@@ -10,22 +10,29 @@ or npm install is required for the extension itself.
 Open **Extensions → LunarCore → LunarDebug**, enable **Record diagnostic metadata**, reproduce
 the behavior, stop recording, then choose **Export JSON**. Recording starts off
 unless you enable **Start recording automatically after reload**. Stop retains
-the buffer; Clear erases it; page reload loses it. The default limit is 10,000
+the live buffer; Clear erases that buffer. Reload loses unsaved recordings. The default limit is 10,000
 records, adjustable from 1,000 to 50,000 while recording. Shrinking keeps the
 newest records and counts removed ones as discarded. This is a record count,
 not a byte or file-size limit. Capacity and auto-start preferences are saved
-through SillyTavern; recordings themselves are never persisted automatically.
+through SillyTavern. Recordings are saved locally only if you enable auto-save below.
 Exports include the whole buffer regardless of the panel's event filter.
 
 The LunarCore drawer contains a small version label and separate LunarUI and
 LunarDebug drawers. Blue moon, laptop and butterfly icons identify them. LunarUI
-offers an optional **Moonlight Blue** recolor. Closing either drawer
+offers optional **Moonlight Blue** and **Twilight** recolors. Closing either drawer
 does not stop recording; attention counts remain visible on the LunarCore header.
 
-Open **LunarCore → LunarUI → Moonlight Blue** to try cool blue panels, accents
-and a subtle glow. It starts off; your choice is saved. Disabling it immediately
-restores the current native theme. The recolor is a CSS layer, not a rewrite of
-SillyTavern's theme settings; layouts, images and background selection are untouched.
+Open **LunarCore → LunarUI**, choose a **Night profile**, then enable recoloring.
+Moonlight Blue now has a softer, less saturated surrounding tint; Twilight uses
+darker blue/purple surfaces with more transparency. Adjust panel opacity for
+each profile independently. Disabling recoloring restores the current native
+theme without rewriting it; layouts, images and background selection are untouched.
+
+**Night effects** can be enabled separately from recoloring: starlight twinkles,
+occasional shining sweeps and a breathing border glow, with intensity and speed
+controls. Effects start off, remain on settings headers, pause offscreen/in
+hidden tabs, and stop under reduced motion. Choices are saved. See the
+[LunarUI guide](docs/LUNAR_UI.md) for scope, settings and compatibility details.
 
 ## Background use
 
@@ -117,3 +124,23 @@ when Playwright's bundled Chromium is unavailable.
 See [the recording-reading guide](docs/READING_RECORDINGS.md) for interpreting
 exports, [the protocol](docs/diagnostics.md) for integration details, and
 [AGENTS.md](AGENTS.md) for project structure and contributor/agent guidance.
+
+## Optional local log archive
+
+LunarDebug can automatically save sanitized recordings when the user enables
+“Automatically save logs on this device.” It is off by default and does not
+enable recording itself. Enable automatic recording too for future sessions.
+IndexedDB retains the newest five recordings, each limited to 2 MB. Routine
+checkpoints run every five seconds; attention changes checkpoint on the next
+UI timer tick (normally within 500 ms). Stop, hiding the page and page exit also
+request a checkpoint. Clear starts a new archive entry; it does not erase saved
+logs. Turning auto-save off retains old entries. “Open logs folder” opens this
+in-browser archive, with JSON export and individual deletion, not an OS folder.
+No log is uploaded or synced; storage is specific to the browser and site origin.
+
+Storage errors must not affect the recorder or scene. Report failures in the UI.
+An abrupt crash/phone shutdown can lose the latest checkpoint, and browser
+storage can be evicted or cleared. Export important recordings. No automatic
+download, directory permission, server filesystem access, absolute timestamp or
+character/asset identifier is added. This supersedes earlier memory-only wording
+for users who explicitly enable local auto-save.
