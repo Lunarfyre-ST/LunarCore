@@ -98,8 +98,9 @@ body.lunar-twilight .lunar-icon { color: #a797c6; filter: drop-shadow(0 0 3px rg
 .lunar-ambient > span { pointer-events: none; }
 .lunar-ambient.lunar-ambient-frame { position: fixed; inset: auto; }
 .lunar-ambient.lunar-ambient-local { position: absolute; z-index: 1; max-width: 100%; max-height: 100%; }
-/* Keep broad surface sweeps on the frame, away from chat and input contents. */
+/* Chrome uses edge highlights; the chat viewport gets a full-height sweep. */
 .lunar-ambient-frame .lunar-sheen { mask-image: linear-gradient(to bottom, #000 0 3px, transparent 3px calc(100% - 3px), #000 calc(100% - 3px)); }
+.lunar-ambient[data-lunar-area="chat"] .lunar-sheen { mask-image: none; }
 .lunar-ambient.lunar-no-twinkles .lunar-star,
 .lunar-ambient.lunar-no-sweeps .lunar-sheen,
 .lunar-ambient.lunar-no-breathing .lunar-halo { animation: none; }

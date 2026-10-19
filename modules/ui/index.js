@@ -28,7 +28,7 @@ export function mountUI(target, context, { onChange = () => {} } = {}) {
         <label class="lunar-theme-toggle"><input type="checkbox" data-area-enabled> Enable effects in this area</label>
         ${['twinkles', 'sweeps', 'breathing', 'speed'].map(key => `<label class="lunar-ui-field">${{ twinkles: 'Twinkle strength', sweeps: 'Sweep strength', breathing: 'Glow strength', speed: 'Speed multiplier' }[key]}<input type="range" min="${key === 'speed' ? '0.25' : '0'}" max="${key === 'speed' ? '2' : '100'}" step="${key === 'speed' ? '0.05' : '1'}" data-area-${key}><output data-area-${key}-value></output></label>`).join('')}
         <p>Area strengths multiply the global intensity; zero disables that effect here. Area speed multiplies global speed. Chat / Sheld starts with gentler twinkles.</p></fieldset>
-        <p>Effects decorate chat edges, composer, navigation, panels, dialogs and settings headers. They pause offscreen or in hidden tabs and honor reduced motion.</p>
+        <p>Effects decorate the chat window, composer, navigation, panels, dialogs and settings headers. They pause offscreen or in hidden tabs and honor reduced motion.</p>
         </fieldset><small data-ui-status role="status"></small>`;
     target.append(panel.drawer);
     const query = selector => panel.content.querySelector(selector);

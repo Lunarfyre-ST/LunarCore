@@ -118,7 +118,8 @@ try {
         sheld.style.cssText = 'position:fixed;left:30px;top:50px;width:300px;height:600px;display:flex;flex-direction:column;overflow:hidden;transform:translateZ(0);background:#101522;z-index:30';
         const chat = document.getElementById('chat'); chat.style.cssText = 'flex:1;overflow:auto;z-index:30;backdrop-filter:blur(10px);background:#101522';
         const form = document.createElement('div'); form.id = 'form_sheld'; form.style.cssText = 'position:relative;z-index:30';
-        form.append(document.getElementById('send_form')); sheld.append(chat, form); document.body.append(sheld);
+        const controls = document.createElement('div'); controls.id = 'fixture-ig-controls'; controls.style.cssText = 'height:80px;flex-shrink:0';
+        form.append(document.getElementById('send_form')); sheld.append(controls, chat, form); document.body.append(sheld);
         document.querySelector('main').style.display = 'none'; window.scrollTo(0, 0);
     });
     await page.waitForFunction(() => document.querySelector('#sheld > [data-lunar-area="chat"].lunar-ambient-visible'));
@@ -135,6 +136,25 @@ try {
     assert.ok(visibleStar.opacity > 0.2, 'Default Sheld twinkles must have a visible peak, not ~7% opacity');
     assert.ok(visibleStar.inset > 20 && visibleStar.inset < visibleStar.height - 20, 'Twinkles must also reach the interior');
     assert.ok(visibleStar.frameZ > 30, 'Frame must sit above native chat/composer stacking contexts');
+    async function assertChatSweep() {
+        await page.waitForFunction(() => {
+            const frame = document.querySelector('[data-lunar-area="chat"]'), chat = document.getElementById('chat');
+            const bounds = frame.getBoundingClientRect(), target = chat.getBoundingClientRect();
+            return Math.abs(bounds.top - target.top) < 1 && Math.abs(bounds.height - chat.clientHeight) < 1;
+        });
+        const sweep = await page.locator('[data-lunar-area="chat"] .lunar-sheen').evaluate(node => ({
+            mask: getComputedStyle(node).maskImage, height: node.getBoundingClientRect().height,
+            top: node.getBoundingClientRect().top, controlsBottom: document.getElementById('fixture-ig-controls').getBoundingClientRect().bottom,
+            composerTop: document.getElementById('form_sheld').getBoundingClientRect().top,
+            bottom: node.getBoundingClientRect().bottom,
+        }));
+        assert.equal(sweep.mask, 'none', 'Chat sweeps must cross the viewport, not a thin edge strip');
+        assert.ok(sweep.height > 100);
+        assert.ok(sweep.top >= sweep.controlsBottom && sweep.bottom <= sweep.composerTop + 1);
+    }
+    await assertChatSweep();
+    await page.evaluate(() => document.getElementById('fixture-ig-controls').style.height = '130px');
+    await assertChatSweep();
     await page.screenshot({ path: path.join(root, 'tests/artifacts/lunar-sheld.png') });
     await page.evaluate(() => disposeUI());
     assert.equal(await page.locator('.lunar-ambient').count(), 0);

@@ -24,10 +24,24 @@ export function createNightEffects({ doc = document, win = window, onStateChange
     function position(host, entry) {
         if (!entry.area.portal) return;
         if (entry.local) {
-            // Native stacking/blur contexts own this frame. Counter scroll without
-            // inserting decoration into messages, the chat list or the send form.
+            // Keep the layer in native chrome, but size Sheld effects to the chat
+            // viewport below IG controls and above the composer.
+            const chat = entry.area.id === 'chat' ? host.querySelector('#chat') : null;
+            const surface = chat || host;
+            if (entry.surface !== surface) {
+                if (entry.surface && entry.surface !== host) resize?.unobserve(entry.surface);
+                if (surface !== host) resize?.observe(surface);
+                entry.surface = surface;
+            }
+            const origin = host.getBoundingClientRect(), bounds = surface.getBoundingClientRect();
+            const scaleX = host.offsetWidth ? origin.width / host.offsetWidth : 1;
+            const scaleY = host.offsetHeight ? origin.height / host.offsetHeight : 1;
+            const left = surface === host ? 0 : (bounds.left - origin.left) / (scaleX || 1) - host.clientLeft + surface.clientLeft;
+            const top = surface === host ? 0 : (bounds.top - origin.top) / (scaleY || 1) - host.clientTop + surface.clientTop;
             const z = Math.max(0, ...[...host.children].filter(node => node !== entry.overlay).map(node => Number.parseInt(win.getComputedStyle(node).zIndex, 10) || 0));
-            Object.assign(entry.overlay.style, { left: `${host.scrollLeft}px`, top: `${host.scrollTop}px`, width: `${host.clientWidth}px`, height: `${host.clientHeight}px`, zIndex: String(z + 1) });
+            Object.assign(entry.overlay.style, { left: `${left + host.scrollLeft}px`, top: `${top + host.scrollTop}px`, width: `${surface.clientWidth}px`, height: `${surface.clientHeight}px`,
+                zIndex: String(z + 1), borderRadius: win.getComputedStyle(surface).borderRadius,
+                display: !surface.getClientRects().length || win.getComputedStyle(surface).visibility === 'hidden' ? 'none' : '' });
             return;
         }
         const rect = host.getBoundingClientRect();
@@ -84,6 +98,7 @@ export function createNightEffects({ doc = document, win = window, onStateChange
         const entry = hosts.get(host);
         if (!entry) return;
         visibility?.unobserve(host); resize?.unobserve(host); entry.overlay.remove();
+        if (entry.surface && entry.surface !== host) resize?.unobserve(entry.surface);
         if (entry.addedClass) host.classList.remove('lunar-effects-host');
         hosts.delete(host);
     }

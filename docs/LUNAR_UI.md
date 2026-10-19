@@ -24,7 +24,7 @@ Custom CSS can still override the pack's styles.
 ## Idle effects
 
 - **Starlight twinkles:** staggered stars across larger surfaces, with edge stars on headers.
-- **Shining sweeps:** occasional soft highlights passing across headers or surface edges.
+- **Shining sweeps:** occasional soft highlights across the chat window; headers and other chrome use edge highlights.
 - **Breathing glow:** a slow change in a decorative border's opacity.
 
 Intensity ranges from 0–100%; speed ranges from 0.25×–2×. At the default 0.75×,
@@ -44,7 +44,9 @@ Surface selectors and defaults live in `modules/ui/areas.js`. Chat, composer,
 navigation and panels use frames inside their native chrome containers, keeping
 them in the native stacking and blur contexts. Chat uses `#sheld` and composer
 uses `#form_sheld`; generic fixtures without those wrappers use external fixed
-frames. Sweeps are masked to edges. No children are added to the chat list or
+frames. Sheld decorations follow the visible `#chat` viewport, excluding IG
+controls above it and the composer below it. Its sweep spans that viewport's
+height; other chrome sweeps are masked to edges. No children are added to the chat list or
 send form. Large surfaces have 16 stars distributed through their interior and
 edges, composer has eight, and headers/navigation have four. Stars have a brighter
 core; low strength no longer multiplies down to nearly invisible opacity.
