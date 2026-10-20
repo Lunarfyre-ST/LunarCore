@@ -1,5 +1,6 @@
 // Explicit background → decoration → native content ordering. Only classes are
 // added; message bodies/inputs are never read or rewritten.
+import { EFFECTS_OPT_OUT, isEffectsOptedOut } from './opt-out.js';
 export function createContentLayers(surface, overlay, win) {
     const owned = new Map();
     function add(node, name) {
@@ -16,11 +17,12 @@ export function createContentLayers(surface, overlay, win) {
     if (win.getComputedStyle(surface).position === 'static') add(surface, 'lunar-effects-host');
     return {
         refresh() {
-            for (const node of [...owned.keys()]) if (node !== surface && !surface.contains(node)) {
+            for (const node of [...owned.keys()]) if (node !== surface && (!surface.contains(node) || isEffectsOptedOut(node) || node.querySelector(EFFECTS_OPT_OUT))) {
                 release(node);
             }
             for (const child of surface.children) {
                 if (child === overlay || child.matches('.lunar-ambient')) continue;
+                if (isEffectsOptedOut(child) || child.querySelector(EFFECTS_OPT_OUT)) continue;
                 // Leave normal message backgrounds below decoration; lift native
                 // text/media/actions instead of lifting the entire message panel.
                 const ownsDrawer = child.matches('.drawer') || child.querySelector('.drawer-content');
@@ -33,6 +35,7 @@ export function createContentLayers(surface, overlay, win) {
                         : [child];
                 if (surface.id === 'chat' && child.matches('.mes')) add(child, 'lunar-message-base');
                 for (const node of content) {
+                    if (isEffectsOptedOut(node)) continue;
                     add(node, 'lunar-content-layer');
                     if (win.getComputedStyle(node).position === 'static') add(node, 'lunar-content-position');
                 }

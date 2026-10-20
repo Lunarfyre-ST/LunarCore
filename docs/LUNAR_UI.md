@@ -37,18 +37,38 @@ the normal effect pace independently of the chosen preset.
 
 ## Idle effects
 
+In v0.0.9 the text sample previews regular, action and quoted text before you
+enable recoloring. **Save or share a custom preset** stores up to eight complete
+appearance copies: palette, opacity/text settings, effect switches, timings and
+area controls. Built-in palette choices still share the live effect controls;
+custom copies restore the entire saved configuration, including enable switches.
+Edits show `(modified)` until saved, and **Reset this preset** reloads a custom
+copy or resets the selected built-in's colors/opacity and all live effects.
+**Delete saved preset** retains the current live appearance. **Export appearance**
+downloads settings and the chosen name; **Import preset** validates a LunarUI
+JSON file (under 64 KB), saves a new custom copy and applies it. These files contain
+no recorder history or chat data; the chosen name is exported as entered.
+**Disable all LunarUI styling and effects** preserves choices while turning off
+both master switches. Native rounding/borders and the 1px composer margin remain
+native; the reverted border/composer styling experiments are not reintroduced.
+
 - **Starlight twinkles:** staggered stars across larger surfaces, with edge stars on headers.
 - **Shining sweeps:** occasional soft highlights across the chat window; headers and other chrome use edge highlights.
 - **Soft bloom:** a breathing, diffuse inset light with two soft radii, not a border. Enable Soft bloom before using the area bloom-strength slider; it is disabled when bloom is off.
 
-Intensity ranges from 0–100%; speed ranges from 0.25×–2×. At the default 0.75×,
+Intensity ranges from 0–100%; twinkle frequency and sweep/bloom speed each range
+from 0.25×–2×. Frequency sets the twinkle cycle independently of sweep/bloom
+speed. Old saved speeds migrate to the initial frequency. At default 0.75×,
 cycles are about 13 seconds for twinkles, 24 for sweeps and 16 for breathing.
 Sweeps remain idle during most of their cycle. These are independent of IG's
 sprite/background animations and do not modify those preferences.
 
 Area tuning covers Chat / Sheld, the message composer, navigation, side panels,
 dialogs and settings headers. Each has an enable switch, independent twinkle,
-sweep and glow strengths (0–100%), and a speed multiplier (0.25–2×). Strengths
+sweep and glow strengths (0–100%), star density (0–200%), and a speed multiplier
+(0.25–2×). **Area tuning · advanced** starts collapsed; **Reset this area**
+restores only its controls. Density changes the count without changing cadence.
+Strengths
 multiply global intensity before a square-root brightness curve, so low settings
 remain visible; zero disables that effect locally. Speeds multiply global speed.
 Chat twinkles default to 25% of global strength, composer to 35%.
@@ -64,19 +84,29 @@ backgrounds and below native content. In chat, the layer is inside `#chat`, with
 native message text/media/actions raised above it; normal message backgrounds
 remain below it. Message contents and inputs are never read, copied or wrapped.
 Native positioning is preserved, and added classes/layers are removed on disable.
-Stars use light-only screen blending with pale cores and no inherited dark shadow.
-This prevents the blue star color from darkening lighter pixels on mobile.
+Desktop stars use light-only screen blending with pale cores and no inherited
+dark shadow. Touch devices use white gradient crosses with ordinary alpha
+compositing, without clipping/blending or animated transforms. Touch sweeps move
+with a simpler position animation. Counts, timing and random-position cycles
+stay the same. Chat visibility is measured on the chat viewport itself, rather
+than its outer Sheld wrapper. These compatibility measures are covered by mobile
+Chromium raster checks; Samsung Internet still needs a real-device smoke check.
 Opaque or separately isolated content from custom themes may cover decorations;
 LunarUI does not remove native backgrounds, blur filters or transforms.
 
 Chat decorations exclude IG controls and the composer, and follow the viewport
 while scrolling/resizing. Chat sweeps cross its full height; other chrome sweeps
 stay on edges. Large surfaces have 16 stars, composer eight, headers/navigation
-four. At most 80 surfaces are decorated. Layers are inert, hidden from assistive
+four at 100% density; 200% doubles those counts. At most 80 surfaces are decorated.
+Layers are inert, hidden from assistive
 technology and ignore pointer input. Offscreen/hidden animations pause; reduced
 motion removes them. Disable/dispose removes observers, listeners and classes.
 
 ## Persistence and diagnostics ownership
+
+Extensions can opt out with `data-lunar-ui="off"`, or use `colors` / `effects`
+for selective protection. See the [extension contract](LUNAR_UI_INTEGRATION.md)
+for live/late-loaded boundaries, inherited native colors and ancestor clipping.
 
 Validated settings live in `extensionSettings.LunarCore.ui`: enabled/profile,
 per-profile opacity and effect controls. Existing `moonlightBlue` preferences
@@ -92,6 +122,7 @@ schemas here; extending their diagnostic coverage belongs to the recorder owner.
 Use Node 24: `npm run check`, `npm test`, and `node tests/ui-browser.mjs` with
 Playwright available. The UI browser fixture tests profile switching, independent
 opacity, restoration, persistence, toggle/intensity/speed controls, dynamic headers,
-reduced motion, page visibility, mobile overflow and disposal. Also run the shared
+reduced motion, page visibility, mobile overflow, touch star/sweep raster pixels,
+scrolled chat visibility and disposal. Also run the shared
 `tests/browser.mjs` when changing integration-facing UI behavior. Fixtures are
 not a claim of validation against a live SillyTavern theme/profile.

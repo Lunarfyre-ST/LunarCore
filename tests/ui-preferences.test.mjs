@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readUIPreferences, saveUIPreferences } from '../modules/ui/preferences.js';
+import { readUIPreferences, saveUIPreferences, presetConfig, parsePreset } from '../modules/ui/preferences.js';
 
 test('old Moonlight choices migrate without enabling motion or dropping explicit disable', () => {
     const legacy = readUIPreferences({ moonlightBlue: true });
@@ -74,4 +74,24 @@ test('strong quote defaults migrate previous defaults while preserving custom ch
     assert.equal(value.text.starlight.quote, '#9cb9df');
     assert.deepEqual(readUIPreferences(value), value);
     assert.equal(readUIPreferences({ textPaletteVersion: 2, text: { moonlight: { quote: '#a2b5cd' } } }).text.moonlight.quote, '#a2b5cd');
+});
+
+test('custom presets and imports are bounded, typed snapshots without recorder data', () => {
+    const config = presetConfig({ enabled: true, profile: 'starlight', effects: { enabled: true, speed: 1.2, frequency: 4, areas: { chat: { density: 900 } } }, debug: { private: 'PRIVATE' }, unknown: 'PRIVATE' });
+    assert.equal(config.effects.frequency, 2);
+    assert.equal(config.effects.areas.chat.density, 200);
+    assert.equal(JSON.stringify(config).includes('PRIVATE'), false);
+    assert.equal(readUIPreferences({ effects: { speed: 0.4 } }).effects.frequency, 0.4);
+    const customPresets = Array.from({ length: 12 }, (_, index) => ({ id: `custom-${index + 1}`, name: 'Long name'.repeat(10), config }));
+    const value = readUIPreferences({ customPresets, selectedPreset: 'custom-1' });
+    assert.equal(value.customPresets.length, 8);
+    assert.equal(value.customPresets[0].name.length, 40);
+    assert.equal(value.selectedPreset, 'custom-1');
+    assert.deepEqual(readUIPreferences(value), value);
+    assert.equal(readUIPreferences({ customPresets: [customPresets[0], customPresets[0]], selectedPreset: 'custom-2' }).customPresets.length, 1);
+    assert.equal(readUIPreferences({ selectedPreset: 'custom-2' }).selectedPreset, '');
+    const parsed = parsePreset(JSON.stringify({ kind: 'lunar-ui-preset', version: 1, name: '<My preset>', config }));
+    assert.equal(parsed.name, '<My preset>');
+    assert.deepEqual(parsed.config, config);
+    for (const invalid of ['{}', 'not json', JSON.stringify({ kind: 'lunar-debug-recording', config }), ' '.repeat(65537)]) assert.throws(() => parsePreset(invalid));
 });

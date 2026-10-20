@@ -51,6 +51,7 @@ the ImmersiveGroups repository; LunarDebug remains a LunarCore module.
 | `modules/ui/effects.js` | Bounded decorative area layers, random positions, bloom, visibility and reduced motion |
 | `modules/ui/layers.js` | Native content above decoration; reversible class ownership |
 | `modules/ui/areas.js` | Fixed surface selectors and area defaults |
+| `modules/ui/opt-out.js` | Extension boundaries and ancestor effect clipping; contract in docs/LUNAR_UI_INTEGRATION.md |
 | `integrations/immersivegroups.js` | Host/IG subscriptions, snapshots, native background observation |
 | `integrations/activity.js` | UI action mapping, configuration ownership/diffs and activity windows |
 | `integrations/generation.js` | Generation coverage, dry runs and conservative lifecycle observations |
@@ -151,6 +152,10 @@ Use Node 24:
   same Playwright environment variables; no companion repository is required.
 
 Add focused regressions for meaningful behavior changes. For integration work,
+preserve `data-lunar-ui` subtree opt-outs (off/colors/effects), native root palette
+updates, owned-class cleanup and ancestor clipping. UI preset files are validated
+appearance data, not recorder exports; do not send chosen names to diagnostics.
+For recorder integration work,
 cover off/on, absent/incompatible/throwing consumers, Stop/Clear, cancellation,
 private-field rejection and relevant late-load paths. Use disposable fixtures,
 never the user's live chat/library. Browser fixtures are not real-SillyTavern

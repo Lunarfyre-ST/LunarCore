@@ -1,4 +1,4 @@
-# LunarCore v0.0.8 — Starlight and soft bloom
+# LunarCore v0.0.9 — custom presets and extension compatibility
 
 LunarCore is a SillyTavern UI extension. Its first module is LunarDebug, an
 optional recorder for real-use diagnostic metadata, especially ImmersiveGroups.
@@ -29,10 +29,17 @@ each profile independently, including regular, emphasized and quoted text colors
 theme without rewriting it; layouts, images and background selection are untouched.
 
 **Night effects** can be enabled separately from recoloring: starlight twinkles,
-occasional shining sweeps and a breathing border glow, with intensity and speed
+occasional shining sweeps and soft breathing bloom, with intensity and speed
 controls plus separate area toggles and adjustments for chat/Sheld, composer, navigation, panels, dialogs and settings. Effects start off, pause offscreen/in
 hidden tabs, and stop under reduced motion. Choices are saved. See the
 [LunarUI guide](docs/LUNAR_UI.md) for scope, settings and compatibility details.
+
+v0.0.9 adds a text preview, eight custom appearance presets with validated
+import/export, per-area star density and reset, separate twinkle frequency,
+collapsed advanced controls and a disable-all button. Other extensions can mark
+their UI with `data-lunar-ui="off"` to exclude LunarUI overhauls, or choose
+`colors` / `effects`. See the [extension contract](docs/LUNAR_UI_INTEGRATION.md)
+for examples and boundaries. Native chat borders/rounding remain native.
 
 ## Background use
 
