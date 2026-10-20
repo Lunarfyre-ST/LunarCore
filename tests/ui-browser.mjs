@@ -260,6 +260,23 @@ try {
     assert.equal((await measureSheld()).border, '0px');
     assert.equal(await page.locator('#chat').evaluate(node => getComputedStyle(node).borderTopLeftRadius), '20px');
     assert.equal(await page.locator('#chat').evaluate(node => getComputedStyle(node).borderTopRightRadius), '20px');
+    const roundingVisible = () => page.locator('#chat').evaluate(node => {
+        const bounds = node.getBoundingClientRect();
+        return { cornerClipped: !node.contains(document.elementFromPoint(bounds.left + 1, bounds.top + 1)),
+            centerVisible: node.contains(document.elementFromPoint(bounds.left + 40, bounds.top + 2)) };
+    });
+    assert.deepEqual(await roundingVisible(), { cornerClipped: true, centerVisible: true });
+    await page.evaluate(() => {
+        document.body.classList.remove('waifuMode');
+        // A late native/theme reset must not flatten the opt-in LunarUI corners.
+        document.getElementById('chat').style.borderRadius = '0';
+    });
+    assert.equal(await page.locator('#chat').evaluate(node => getComputedStyle(node).borderTopLeftRadius), '20px');
+    assert.deepEqual(await roundingVisible(), { cornerClipped: true, centerVisible: true });
+    await page.evaluate(() => {
+        document.getElementById('chat').style.removeProperty('border-radius');
+        document.body.classList.add('waifuMode');
+    });
     const composerTint = await page.locator('#send_form').evaluate(node => getComputedStyle(node).backgroundColor);
     assert.equal(composerTint, 'rgba(10, 8, 21, 0.46)');
     await page.evaluate(() => {

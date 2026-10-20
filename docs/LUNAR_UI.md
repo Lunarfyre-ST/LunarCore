@@ -22,7 +22,8 @@ including native theme changes made while the layer was active. It does not
 rewrite native theme settings, sprite positions or chat data.
 Custom CSS can still override the pack's styles.
 
-While recoloring is on, VN chat keeps its native rounded corners without the top
+While recoloring is on, chat has explicit 20px rounded top corners in welcome
+and VN modes, including after late native/theme resets, without the top
 border line, and the composer has no 1px top margin. Its panel tint/border apply from
 first insertion and remain consistent across focus/blur and chat replacement,
 independently of idle effects. Native keyboard focus indication is kept, tinted
