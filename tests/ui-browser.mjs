@@ -139,6 +139,40 @@ try {
     assert.equal(await page.locator('[data-area-twinkles]').inputValue(), '0');
     assert.equal(await page.locator('[data-area-speed]').inputValue(), '2');
     assert.equal(await page.evaluate(() => ctx.extensionSettings.LunarCore.debug.capacity), 5000);
+    // Native drawers are static flex items: the entire toolbar anchors their popup.
+    // Making an individual drawer relative shifts its popup under that icon.
+    await page.locator('[data-ui-effects]').uncheck();
+    const nativeDrawer = await page.evaluate(() => {
+        const nav = document.getElementById('top-settings-holder');
+        window.originalNavStyle = nav.getAttribute('style');
+        nav.style.cssText = 'position:fixed;display:flex;left:20px;top:20px;width:360px;height:40px;z-index:3005';
+        for (let i = 0; i < 3; i++) {
+            const drawer = document.createElement('div'); drawer.className = 'drawer'; drawer.dataset.nativeFixture = '';
+            drawer.style.cssText = 'display:flex;flex:1';
+            const icon = document.createElement('span'); icon.className = 'drawer-icon'; icon.textContent = 'Icon'; drawer.append(icon);
+            if (i === 2) {
+                const popup = document.createElement('div'); popup.id = 'native-toolbar-popup'; popup.className = 'drawer-content';
+                popup.style.cssText = 'position:absolute;left:0;top:40px;width:100%;height:100px'; popup.textContent = 'Fixture dropdown'; drawer.append(popup);
+            }
+            nav.append(drawer);
+        }
+        const rect = document.getElementById('native-toolbar-popup').getBoundingClientRect();
+        return { left: rect.left, top: rect.top, width: rect.width };
+    });
+    await page.locator('[data-ui-effects]').check();
+    await page.waitForFunction(() => document.querySelector('#native-toolbar-popup > .lunar-ambient'));
+    const themedDrawer = await page.locator('#native-toolbar-popup').evaluate(node => {
+        const rect = node.getBoundingClientRect();
+        return { left: rect.left, top: rect.top, width: rect.width, anchor: node.offsetParent.id, parentPosition: getComputedStyle(node.parentElement).position };
+    });
+    assert.deepEqual({ left: themedDrawer.left, top: themedDrawer.top, width: themedDrawer.width }, nativeDrawer);
+    assert.equal(themedDrawer.anchor, 'top-settings-holder');
+    assert.equal(themedDrawer.parentPosition, 'static');
+    await page.evaluate(() => {
+        document.querySelectorAll('[data-native-fixture]').forEach(node => node.remove());
+        const nav = document.getElementById('top-settings-holder');
+        if (window.originalNavStyle === null) nav.removeAttribute('style'); else nav.setAttribute('style', window.originalNavStyle);
+    });
     await page.setViewportSize({ width: 390, height: 1000 });
     await page.waitForFunction(() => [...document.querySelectorAll('.lunar-ambient-local')].every(node => node.clientWidth <= innerWidth));
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);

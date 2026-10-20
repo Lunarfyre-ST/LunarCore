@@ -106,3 +106,30 @@
   image/clone initialization and request failures without exporting private asset
   identifiers. Preserve actual image-error reporting rather than suppressing all
   hidden-image failures. Analysis/documentation only; no runtime changes or tests.
+## Recording (8), analyzed 2026-10-20 — LunarUI drawer positioning
+
+- Schema 4 / protocol 1; LunarCore 0.0.8 / ImmersiveGroups 0.3.8.
+  Live export: 141 main records, capacity 50000, 0 dropped, 41 summarized;
+  3 attention observations grouped into 1 retained record, 0 attention dropped.
+  Deduplicated the shared events/attentionEvents by sequence.
+- Integration reports instrumented/ready; motionHooks and spriteObserver true.
+  Start/end/stop/after-command generation event definitions are available; this
+  does not guarantee all lifecycle notifications are delivered.
+- All attention is sequence 109: sprite.lifecycle/load_error, operation 1,
+  invisible/unready solo renderer, nativeTransition false, count 3, from 1228 to
+  3956 ms. No source identity or request cause is recorded. Existing grouping is
+  working; this is not three separate bugs or evidence of a UI positioning cause.
+- Eight cancellation records are separate from attention. The generation record
+  is a dry run skipped as dry_run, not proof of a missing response. The user
+  clarified the blank chat in the screenshot was an empty conversation.
+- The exported metadata does not contain CSS geometry or current LunarUI preset/
+  area controls. ui.theme/moonlight_blue disabled does not identify which other
+  preset or effect settings were active. Do not infer CSS causation from timing.
+- Independently reproduced the reported dropdown displacement in the local UI
+  fixture: raising static toolbar wrappers with position:relative changed the
+  dropdown containing block (left 20 to 284 px; width 360 to 96 px). LunarUI now
+  raises only drawer icons, preserving the native wrapper and anchor. This is a
+  source/fixture finding, not a conclusion derived from the recording.
+- Handoff: hidden solo-image errors remain the actionable recorder/source
+  follow-up; retain counts/timing and privacy boundaries. No recorder schema
+  expansion is needed to fix this LunarUI regression.

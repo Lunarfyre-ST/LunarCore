@@ -64,3 +64,14 @@ test('Starlight and per-preset text preferences are typed, independent and migra
     assert.equal(prefs.effects.randomPositions, false);
     assert.deepEqual(readUIPreferences(prefs), prefs);
 });
+
+test('strong quote defaults migrate previous defaults while preserving custom choices', () => {
+    const value = readUIPreferences({ text: {
+        moonlight: { quote: '#a2b5cd' }, twilight: { quote: '#ffbb44' }, starlight: { quote: '#929eb5' },
+    } });
+    assert.equal(value.text.moonlight.quote, '#86c8ff');
+    assert.equal(value.text.twilight.quote, '#ffbb44');
+    assert.equal(value.text.starlight.quote, '#9cb9df');
+    assert.deepEqual(readUIPreferences(value), value);
+    assert.equal(readUIPreferences({ textPaletteVersion: 2, text: { moonlight: { quote: '#a2b5cd' } } }).text.moonlight.quote, '#a2b5cd');
+});

@@ -5,6 +5,10 @@
 - Add Starlight: darker blue-gray surfaces, 72% default opacity, dimmer text, and
   65% effect strength/speed while recoloring is active.
 - Add per-preset text enable/reset and regular/emphasized/quoted color pickers.
+- Strengthen default quote colors to distinguish dialogue from action text;
+  migrate previous defaults once while preserving custom choices.
+- Preserve native static toolbar wrappers when layering effects, fixing shifted
+  dropdowns and their width; raise only drawer icons.
 - Place stars below native content and above normal surface/message backgrounds;
   use screen blending and pale cores without inherited shadows to avoid dark spots.
 - Add experimental random positions with the same count, frequency and stagger.

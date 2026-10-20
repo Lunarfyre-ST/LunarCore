@@ -3,10 +3,11 @@ import { EFFECT_AREAS } from './areas.js';
 export const PROFILE_DEFAULTS = Object.freeze({ moonlight: 82, twilight: 58, starlight: 72 });
 export const PROFILE_NAMES = Object.freeze({ moonlight: 'Moonlight', twilight: 'Twilight', starlight: 'Starlight' });
 export const TEXT_DEFAULTS = Object.freeze({
-    moonlight: { body: '#ccd3df', emphasis: '#969fb4', quote: '#a2b5cd' },
-    twilight: { body: '#bcb8cc', emphasis: '#9290aa', quote: '#af9bc6' },
-    starlight: { body: '#a9afbd', emphasis: '#83899c', quote: '#929eb5' },
+    moonlight: { body: '#ccd3df', emphasis: '#969fb4', quote: '#86c8ff' },
+    twilight: { body: '#bcb8cc', emphasis: '#9290aa', quote: '#c5a0f0' },
+    starlight: { body: '#a9afbd', emphasis: '#83899c', quote: '#9cb9df' },
 });
+const PREVIOUS_QUOTES = Object.freeze({ moonlight: '#a2b5cd', twilight: '#af9bc6', starlight: '#929eb5' });
 const color = (value, fallback) => typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value) ? value.toLowerCase() : fallback;
 const bounded = (value, min, max, fallback) => typeof value === 'number' && Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
 
@@ -14,6 +15,7 @@ export function readUIPreferences(value = {}) {
     return {
         enabled: typeof value?.enabled === 'boolean' ? value.enabled : value?.moonlightBlue === true,
         profile: Object.hasOwn(PROFILE_DEFAULTS, value?.profile) ? value.profile : 'moonlight',
+        textPaletteVersion: 2,
         opacity: {
             moonlight: bounded(value?.opacity?.moonlight, 20, 100, PROFILE_DEFAULTS.moonlight),
             twilight: bounded(value?.opacity?.twilight, 20, 100, PROFILE_DEFAULTS.twilight),
@@ -21,7 +23,10 @@ export function readUIPreferences(value = {}) {
         },
         text: Object.fromEntries(Object.keys(PROFILE_DEFAULTS).map(profile => [profile, {
             enabled: typeof value?.text?.[profile]?.enabled === 'boolean' ? value.text[profile].enabled : true,
-            ...Object.fromEntries(Object.entries(TEXT_DEFAULTS[profile]).map(([key, fallback]) => [key, color(value?.text?.[profile]?.[key], fallback)])),
+            ...Object.fromEntries(Object.entries(TEXT_DEFAULTS[profile]).map(([key, fallback]) => {
+                const saved = color(value?.text?.[profile]?.[key], fallback);
+                return [key, key === 'quote' && value?.textPaletteVersion !== 2 && saved === PREVIOUS_QUOTES[profile] ? fallback : saved];
+            })),
         }])),
         effects: {
             enabled: value?.effects?.enabled === true,

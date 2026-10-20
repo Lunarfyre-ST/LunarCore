@@ -84,7 +84,7 @@ try {
     await moonlight.check();
     assert.equal(await page.evaluate(() => document.body.classList.contains('lunar-moonlight')), true);
     assert.equal(await page.evaluate(() => ctx.extensionSettings.LunarCore.ui.moonlightBlue), true);
-    assert.equal(await page.evaluate(() => getComputedStyle(document.body).getPropertyValue('--SmartThemeQuoteColor').trim()), '#a2b5cd');
+    assert.equal(await page.evaluate(() => getComputedStyle(document.body).getPropertyValue('--SmartThemeQuoteColor').trim()), '#86c8ff');
     assert.equal(await page.evaluate(() => document.documentElement.style.getPropertyValue('--SmartThemeQuoteColor')), '#e0aa44');
     await mkdir(path.join(root, 'tests/artifacts'), { recursive: true });
     await page.screenshot({ path: path.join(root, 'tests/artifacts/lunar-moonlight.png') });

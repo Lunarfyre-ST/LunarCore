@@ -8,20 +8,29 @@ export function createContentLayers(surface, overlay, win) {
         if (!owned.has(node)) owned.set(node, []);
         owned.get(node).push(name);
     }
+    function release(node) {
+        if (!owned.has(node)) return;
+        node.classList.remove(...owned.get(node)); owned.delete(node);
+    }
     add(surface, 'lunar-layer-surface');
     if (win.getComputedStyle(surface).position === 'static') add(surface, 'lunar-effects-host');
     return {
         refresh() {
             for (const node of [...owned.keys()]) if (node !== surface && !surface.contains(node)) {
-                node.classList.remove(...owned.get(node)); owned.delete(node);
+                release(node);
             }
             for (const child of surface.children) {
                 if (child === overlay || child.matches('.lunar-ambient')) continue;
                 // Leave normal message backgrounds below decoration; lift native
                 // text/media/actions instead of lifting the entire message panel.
-                const content = surface.id === 'chat' && child.matches('.mes')
-                    ? child.querySelectorAll('.mes_block, .mesAvatarWrapper, .mes_text, .mes_buttons, .ch_name, .avatar')
-                    : [child];
+                const ownsDrawer = child.matches('.drawer') || child.querySelector('.drawer-content');
+                if (ownsDrawer) release(child); // Also handles a popup inserted after its wrapper.
+                // Native static drawer wrappers deliberately inherit the toolbar's
+                // containing block. Raise only their icons, never the wrappers.
+                const content = ownsDrawer ? child.querySelectorAll('.drawer-icon')
+                    : surface.id === 'chat' && child.matches('.mes')
+                        ? child.querySelectorAll('.mes_block, .mesAvatarWrapper, .mes_text, .mes_buttons, .ch_name, .avatar')
+                        : [child];
                 if (surface.id === 'chat' && child.matches('.mes')) add(child, 'lunar-message-base');
                 for (const node of content) {
                     add(node, 'lunar-content-layer');

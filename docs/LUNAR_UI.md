@@ -26,6 +26,10 @@ Each preset has an independent **Recolor text** switch, color pickers for regula
 emphasized and quoted text, and a reset button. Disabling text recoloring keeps
 native text colors while retaining the panel recolor. Validated six-digit hex
 colors are saved per preset. Existing Moonlight preferences migrate unchanged.
+Default quotes use clearer blue (Moonlight), lavender (Twilight) and soft blue
+(Starlight), distinct from subdued action/emphasis colors. Previous default quote
+colors migrate once; customized colors remain. Native toolbar drawer wrappers
+retain their positioning so dropdowns keep their original anchor and width.
 
 Starlight dims effect strength to 65% and multiplies speed by 0.65 while its
 recolor is enabled. Global and area controls still apply. Recoloring off restores
