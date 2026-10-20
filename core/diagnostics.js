@@ -29,7 +29,7 @@ const enumFields = {
     mode: ['cross', 'sequential', 'prompt', 'api', 'other'],
     transport: ['main', 'profile', 'custom', 'other'],
     outcome: ['applied', 'completed', 'skipped', 'cancelled', 'failed', 'requested', 'unobserved', 'pending'],
-    reason: ['unavailable', 'scope_or_lock', 'stale', 'unchanged', 'disabled', 'invalid', 'error', 'other',
+    reason: ['unavailable', 'locked', 'scope', 'scope_or_lock', 'stale', 'unchanged', 'disabled', 'invalid', 'error', 'other',
         'superseded', 'chat_changed', 'layout_changed', 'viewport_changed', 'motion_changed', 'disabled_scene', 'unknown',
         'native_transition', 'node_replaced', 'entrance_active', 'settings_changed', 'source_changed', 'visibility_changed', 'unsupported', 'removed', 'zero_motion', 'finished', 'animation_api', 'user_cancelled', 'dry_run', 'overlapping_start', 'ambiguous_terminal', 'recording_stopped', 'recording_exported', 'end_event', 'stop_event'],
     status: ['absent', 'legacy', 'instrumented', 'starting', 'ready', 'partial', 'failed', 'blocked', 'other'],

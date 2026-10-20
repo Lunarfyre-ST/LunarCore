@@ -184,3 +184,14 @@ and changed flag, never character identities. automation.execute includes the
 boolean streaming boundary. A command applied during streaming is already a
 scene change: later Stop/revision cancels pending work but cannot undo it. These
 additions retain recorder schema 4 and producer protocol 1.
+
+
+## ImmersiveGroups 0.4.0 automation feedback
+
+Per-command `automation.execute` details distinguish fixed reasons `locked`,
+`scope`, `unavailable`, `disabled`, `unchanged`, `stale`, `invalid` and `error`.
+`scope_or_lock` remains readable for older producers. Cancellation is distinct
+from failure. No character/outfit names, identifiers, message text or errors are
+included. The UI summary counts retained detail rows only, excluding starts,
+ends and aggregate applied/skipped totals. Evicted or unrecorded details cannot
+be reconstructed and the summary does not claim whole-session coverage.

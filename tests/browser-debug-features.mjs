@@ -9,6 +9,9 @@ export default async function debugFeatures(browser, url, prefix) {
     assert.equal(await page.locator('[data-auto-save]').isChecked(), false);
     await page.evaluate(() => { ImmersiveGroups.motionDiagnosticsProtocol = 1; });
     await page.locator('[data-record]').check();
+    await page.evaluate(() => { const op=globalThis[Symbol.for('LunarDebug.sink')].begin('automation.execute',{commands:3});op.step({kind:'outfit',outcome:'skipped',reason:'locked'});op.step({kind:'background',outcome:'skipped',reason:'scope'});op.step({kind:'outfit',outcome:'applied'});op.finish({outcome:'completed',applied:1,skipped:2}); });
+    await page.waitForFunction(() => { const text=document.querySelector('[data-automation-feedback]').textContent;return text.includes('1 applied')&&text.includes('1 locked')&&text.includes('1 scope'); });
+
     await page.locator('[data-auto-save]').check();
     await page.waitForFunction(() => document.querySelector('[data-save-status]').textContent === 'Saved locally.');
     await page.evaluate(async prefix => {
