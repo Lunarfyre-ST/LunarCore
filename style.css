@@ -84,6 +84,23 @@ body.lunar-recolor {
     --SmartThemeBorderColor: rgba(var(--lunar-accent-rgb), 0.3);
     --SmartThemeBlurTintColor: rgba(var(--lunar-surface-rgb), var(--lunar-panel-opacity, 0.82));
     --SmartThemeChatTintColor: rgba(var(--lunar-surface-rgb), calc(var(--lunar-panel-opacity, 0.82) * 0.9));
+    --lunar-composer-tint: rgba(var(--lunar-surface-rgb), var(--lunar-panel-opacity, 0.82));
+}
+/* Keep the opt-in pack consistent when ST switches from welcome to VN/chat.
+   CSS also covers newly inserted composers before any input/settings event. */
+body.lunar-recolor.waifuMode #sheld #chat {
+    border-top-width: 0;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+body.lunar-recolor #sheld #form_sheld { margin-top: 0; }
+body.lunar-recolor #sheld #send_form {
+    background-color: var(--lunar-composer-tint) !important;
+    border-color: rgba(var(--lunar-accent-rgb), 0.3) !important;
+}
+body.lunar-recolor #sheld #send_form:has(#send_textarea:focus-visible) {
+    border-color: rgba(var(--lunar-accent-rgb), 0.65) !important;
+    outline-color: rgba(var(--lunar-accent-rgb), 0.65);
 }
 body.lunar-recolor :is(#extensions_settings, #extensions_settings2) .inline-drawer-toggle.inline-drawer-header,
 body.lunar-recolor .standoutHeader {
