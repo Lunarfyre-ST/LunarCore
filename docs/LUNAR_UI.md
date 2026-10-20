@@ -19,16 +19,8 @@ more of the existing background; the background image itself is never changed.
 The recolor layers CSS variables and chrome styles over the current native theme.
 Switching it off removes that layer, revealing the current underlying theme,
 including native theme changes made while the layer was active. It does not
-rewrite native theme settings, sprite positions or chat data.
+rewrite native theme settings or change layouts, sprite positions or chat data.
 Custom CSS can still override the pack's styles.
-
-While recoloring is on, chat has explicit 20px rounded top corners in welcome
-and VN modes, including after late native/theme resets, without the top
-border line, and the composer has no 1px top margin. Its panel tint/border apply from
-first insertion and remain consistent across focus/blur and chat replacement,
-independently of idle effects. Native keyboard focus indication is kept, tinted
-to the preset. Disabling recoloring restores the native border, margin
-and composer colors, including current native inline styling.
 
 Each preset has an independent **Recolor text** switch, color pickers for regular,
 emphasized and quoted text, and a reset button. Disabling text recoloring keeps

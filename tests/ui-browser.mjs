@@ -188,9 +188,9 @@ try {
     await page.evaluate(() => {
         const sheld = document.createElement('div'); sheld.id = 'sheld';
         sheld.style.cssText = 'position:fixed;left:30px;top:50px;width:300px;height:600px;display:flex;flex-direction:column;overflow:hidden;transform:translateZ(0);background:#101522;z-index:30';
-        const chat = document.getElementById('chat'); chat.style.cssText = 'flex:1;overflow:auto;z-index:30;backdrop-filter:blur(10px);background:#101522';
-        const nativeOffsets = document.createElement('style'); nativeOffsets.textContent = '#chat { bottom:10px; border-top:1px solid #555; } #form_sheld { margin:1px auto 0; } body.waifuMode #chat { border-radius:20px 20px 0 0; } #send_form { border:1px solid #555; background-color:#343434; } #send_form:has(#send_textarea:focus-visible) { outline:1px solid white; border-color:white; }'; document.head.append(nativeOffsets);
-        const form = document.createElement('div'); form.id = 'form_sheld'; form.style.cssText = 'position:relative;z-index:30';
+        const chat = document.getElementById('chat'); chat.style.cssText = 'flex:1;overflow:auto;z-index:30;backdrop-filter:blur(10px);background:#101522;border-top:1px solid #555';
+        const nativeOffsets = document.createElement('style'); nativeOffsets.textContent = '#chat { bottom:10px; }'; document.head.append(nativeOffsets);
+        const form = document.createElement('div'); form.id = 'form_sheld'; form.style.cssText = 'position:relative;z-index:30;margin:1px auto 0';
         const controls = document.createElement('div'); controls.id = 'fixture-ig-controls'; controls.style.cssText = 'height:80px;flex-shrink:0';
         const message = document.createElement('div'); message.className = 'mes'; message.style.cssText = 'position:relative;bottom:3px;min-height:100px;background:#293749';
         const text = document.createElement('div'); text.className = 'mes_text'; text.textContent = 'Fixture message text remains above the stars.';
@@ -250,58 +250,6 @@ try {
     assert.equal(await page.locator('#form_sheld').evaluate(node => getComputedStyle(node).position), 'relative');
     await page.evaluate(() => document.getElementById('fixture-ig-controls').style.height = '130px');
     await assertChatSweep();
-    // Welcome → VN/chat and a replacement composer must be themed immediately,
-    // independently of effect lifecycle or further user interaction.
-    await page.evaluate(() => {
-        document.body.classList.add('waifuMode');
-        const toggle = document.querySelector('[data-moonlight]'); toggle.checked = true; toggle.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-    assert.equal((await measureSheld()).gap, 0);
-    assert.equal((await measureSheld()).border, '0px');
-    assert.equal(await page.locator('#chat').evaluate(node => getComputedStyle(node).borderTopLeftRadius), '20px');
-    assert.equal(await page.locator('#chat').evaluate(node => getComputedStyle(node).borderTopRightRadius), '20px');
-    const roundingVisible = () => page.locator('#chat').evaluate(node => {
-        const bounds = node.getBoundingClientRect();
-        return { cornerClipped: !node.contains(document.elementFromPoint(bounds.left + 1, bounds.top + 1)),
-            centerVisible: node.contains(document.elementFromPoint(bounds.left + 40, bounds.top + 2)) };
-    });
-    assert.deepEqual(await roundingVisible(), { cornerClipped: true, centerVisible: true });
-    await page.evaluate(() => {
-        document.body.classList.remove('waifuMode');
-        // A late native/theme reset must not flatten the opt-in LunarUI corners.
-        document.getElementById('chat').style.borderRadius = '0';
-    });
-    assert.equal(await page.locator('#chat').evaluate(node => getComputedStyle(node).borderTopLeftRadius), '20px');
-    assert.deepEqual(await roundingVisible(), { cornerClipped: true, centerVisible: true });
-    await page.evaluate(() => {
-        document.getElementById('chat').style.removeProperty('border-radius');
-        document.body.classList.add('waifuMode');
-    });
-    const composerTint = await page.locator('#send_form').evaluate(node => getComputedStyle(node).backgroundColor);
-    assert.equal(composerTint, 'rgba(10, 8, 21, 0.46)');
-    await page.evaluate(() => {
-        const toggle = document.querySelector('[data-ui-effects]'); toggle.checked = false; toggle.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-    assert.equal(await page.locator('.lunar-ambient').count(), 0);
-    assert.equal(await page.locator('#send_form').evaluate(node => getComputedStyle(node).backgroundColor), composerTint, 'Composer recolor must not depend on animations');
-    await page.evaluate(() => {
-        const previous = document.getElementById('send_form'), next = document.createElement('div');
-        next.id = 'send_form'; next.append(...previous.childNodes);
-        next.style.backgroundColor = '#777777'; previous.replaceWith(next);
-    });
-    assert.equal(await page.locator('#send_form').evaluate(node => getComputedStyle(node).backgroundColor), composerTint);
-    await page.locator('#send_textarea').focus();
-    assert.equal(await page.locator('#send_form').evaluate(node => getComputedStyle(node).backgroundColor), composerTint);
-    assert.notEqual(await page.locator('#send_form').evaluate(node => getComputedStyle(node).outlineStyle), 'none');
-    await page.locator('#send_textarea').blur();
-    assert.equal(await page.locator('#send_form').evaluate(node => getComputedStyle(node).backgroundColor), composerTint);
-    await page.evaluate(() => {
-        const toggle = document.querySelector('[data-moonlight]'); toggle.checked = false; toggle.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-    assert.equal((await measureSheld()).gap, 1);
-    assert.equal((await measureSheld()).border, '1px');
-    assert.equal(await page.locator('#chat').evaluate(node => getComputedStyle(node).borderTopLeftRadius), '20px');
-    assert.equal(await page.locator('#send_form').evaluate(node => getComputedStyle(node).backgroundColor), 'rgb(119, 119, 119)');
     await page.screenshot({ path: path.join(root, 'tests/artifacts/lunar-sheld.png') });
     const beforeCleanup = await measureSheld();
     await page.evaluate(() => disposeUI());

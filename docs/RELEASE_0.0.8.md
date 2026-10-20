@@ -11,14 +11,9 @@
   dropdowns and their width; raise only drawer icons.
 - Neutralize inactive native insets when adding a decoration anchor to a static
   element. This prevents ST's `#chat { bottom:10px }` from shifting chat upward
-  and opening a gap above Quick Replies. Existing positioned elements retain
-  their offsets; the separate viewport-bottom gap remains unattributed.
-- While recoloring is enabled, hide the chat top border and explicitly retain
-  20px rounded top corners through welcome/VN mode and native/theme resets,
-  and the native 1px composer margin, keeping welcome/chat joins consistent.
-  Explicit composer tint/border styles also cover initial insertion, replacement,
-  focus and blur without user actions. Keyboard focus indication remains visible.
-  Turning recoloring off restores current native appearance and spacing.
+  and opening a gap above Quick Replies. Existing positioned elements and the
+  native VN chat border are preserved; the separate viewport-bottom gap remains
+  unattributed pending live measurements.
 - Place stars below native content and above normal surface/message backgrounds;
   use screen blending and pale cores without inherited shadows to avoid dark spots.
 - Add experimental random positions with the same count, frequency and stagger.
