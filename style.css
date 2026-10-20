@@ -101,10 +101,13 @@ body.lunar-recolor input[type="checkbox"], body.lunar-recolor input[type="range"
 body.lunar-twilight .lunar-icon { color: #a797c6; filter: drop-shadow(0 0 3px rgba(138,112,180,0.25)); }
 
 /* Decorative layers have no hit targets and never alter chat/media elements. */
-.lunar-effects-host { position: relative; }
+/* Added only to previously static elements. Their native inset values were
+   inactive; neutralize them when anchoring decoration (ST #chat has bottom:10px).
+   Important beats native ID rules without touching elements already positioned. */
+.lunar-effects-host { position: relative; inset: auto !important; }
 .lunar-layer-surface { isolation: isolate; }
 .lunar-content-layer { z-index: 1; }
-.lunar-content-position { position: relative; }
+.lunar-content-position { position: relative; inset: auto !important; }
 #chat.lunar-layer-surface > .lunar-message-base { z-index: auto !important; }
 .lunar-ambient { position: absolute; z-index: 0; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none; user-select: none; }
 .lunar-ambient > span { pointer-events: none; }

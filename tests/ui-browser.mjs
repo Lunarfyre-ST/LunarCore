@@ -184,19 +184,34 @@ try {
     // Native-shaped layout: effects remain visible after the Extensions drawer closes.
     await page.locator('[data-ui-intensity]').evaluate(node => { node.value = 35; node.dispatchEvent(new Event('input', { bubbles: true })); });
     await page.locator('[data-area-twinkles]').evaluate(node => { node.value = 25; node.dispatchEvent(new Event('input', { bubbles: true })); });
+    await page.locator('[data-ui-effects]').uncheck();
     await page.evaluate(() => {
         const sheld = document.createElement('div'); sheld.id = 'sheld';
         sheld.style.cssText = 'position:fixed;left:30px;top:50px;width:300px;height:600px;display:flex;flex-direction:column;overflow:hidden;transform:translateZ(0);background:#101522;z-index:30';
-        const chat = document.getElementById('chat'); chat.style.cssText = 'flex:1;overflow:auto;z-index:30;backdrop-filter:blur(10px);background:#101522';
-        const form = document.createElement('div'); form.id = 'form_sheld'; form.style.cssText = 'position:relative;z-index:30';
+        const chat = document.getElementById('chat'); chat.style.cssText = 'flex:1;overflow:auto;z-index:30;backdrop-filter:blur(10px);background:#101522;border-top:1px solid #555';
+        const nativeOffsets = document.createElement('style'); nativeOffsets.textContent = '#chat { bottom:10px; }'; document.head.append(nativeOffsets);
+        const form = document.createElement('div'); form.id = 'form_sheld'; form.style.cssText = 'position:relative;z-index:30;margin:1px auto 0';
         const controls = document.createElement('div'); controls.id = 'fixture-ig-controls'; controls.style.cssText = 'height:80px;flex-shrink:0';
-        const message = document.createElement('div'); message.className = 'mes'; message.style.cssText = 'position:relative;min-height:100px;background:#293749';
+        const message = document.createElement('div'); message.className = 'mes'; message.style.cssText = 'position:relative;bottom:3px;min-height:100px;background:#293749';
         const text = document.createElement('div'); text.className = 'mes_text'; text.textContent = 'Fixture message text remains above the stars.';
         message.append(text); chat.append(message);
         form.append(document.getElementById('send_form')); sheld.append(controls, chat, form); document.body.append(sheld);
-        document.querySelector('main').style.display = 'none'; window.scrollTo(0, 0);
+        window.scrollTo(0, 0);
     });
+    const measureSheld = () => page.evaluate(() => {
+        const chat = document.getElementById('chat'), form = document.getElementById('form_sheld');
+        const rect = chat.getBoundingClientRect(), composer = form.getBoundingClientRect();
+        return { top: rect.top, bottom: rect.bottom, gap: composer.top - rect.bottom,
+            viewportGap: innerHeight - composer.bottom, border: getComputedStyle(chat).borderTopWidth };
+    });
+    const nativeSheld = await measureSheld();
+    assert.equal(nativeSheld.gap, 1);
+    await page.locator('[data-ui-effects]').check();
+    await page.evaluate(() => { document.querySelector('main').style.display = 'none'; });
     await page.waitForFunction(() => document.querySelector('#chat > [data-lunar-area="chat"].lunar-ambient-visible'));
+    assert.deepEqual(await measureSheld(), nativeSheld, 'Effects must not activate the native bottom:10px offset or alter composer spacing');
+    assert.equal(await page.locator('#chat').evaluate(node => getComputedStyle(node).bottom), '0px');
+    assert.equal(await page.locator('#chat .mes').evaluate(node => getComputedStyle(node).bottom), '3px', 'Existing positioned offsets must remain intact');
     assert.equal(await page.locator('[data-lunar-area="chat"] .lunar-star').count(), 16);
     assert.equal(await page.locator('#send_form .lunar-ambient').count(), 0);
     assert.equal(await page.locator('#form_sheld > [data-lunar-area="composer"]').count(), 1);
@@ -218,7 +233,7 @@ try {
         await page.waitForFunction(() => {
             const frame = document.querySelector('[data-lunar-area="chat"]'), chat = document.getElementById('chat');
             const bounds = frame.getBoundingClientRect(), target = chat.getBoundingClientRect();
-            return Math.abs(bounds.top - target.top) < 1 && Math.abs(bounds.height - chat.clientHeight) < 1;
+            return Math.abs(bounds.top - (target.top + chat.clientTop)) < 1 && Math.abs(bounds.height - chat.clientHeight) < 1;
         });
         const sweep = await page.locator('[data-lunar-area="chat"] .lunar-sheen').evaluate(node => ({
             mask: getComputedStyle(node).maskImage, height: node.getBoundingClientRect().height,
@@ -231,10 +246,15 @@ try {
         assert.ok(sweep.top >= sweep.controlsBottom && sweep.bottom <= sweep.composerTop + 1);
     }
     await assertChatSweep();
+    assert.equal((await measureSheld()).gap, 1, 'Resized IG controls must not reintroduce the gap');
+    assert.equal(await page.locator('#form_sheld').evaluate(node => getComputedStyle(node).position), 'relative');
     await page.evaluate(() => document.getElementById('fixture-ig-controls').style.height = '130px');
     await assertChatSweep();
     await page.screenshot({ path: path.join(root, 'tests/artifacts/lunar-sheld.png') });
+    const beforeCleanup = await measureSheld();
     await page.evaluate(() => disposeUI());
+    assert.deepEqual(await measureSheld(), beforeCleanup);
+    assert.equal(await page.locator('#chat').evaluate(node => getComputedStyle(node).bottom), '10px', 'Cleanup restores the native inactive inset');
     assert.equal(await page.locator('.lunar-ambient').count(), 0);
     assert.equal(await page.locator('.lunar-content-layer, .lunar-layer-surface, .lunar-content-position, .lunar-message-base').count(), 0);
     assert.equal(await page.evaluate(() => document.body.style.getPropertyValue('--lunar-text-body')), '');

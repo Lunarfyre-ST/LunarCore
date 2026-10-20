@@ -9,6 +9,11 @@
   migrate previous defaults once while preserving custom choices.
 - Preserve native static toolbar wrappers when layering effects, fixing shifted
   dropdowns and their width; raise only drawer icons.
+- Neutralize inactive native insets when adding a decoration anchor to a static
+  element. This prevents ST's `#chat { bottom:10px }` from shifting chat upward
+  and opening a gap above Quick Replies. Existing positioned elements and the
+  native VN chat border are preserved; the separate viewport-bottom gap remains
+  unattributed pending live measurements.
 - Place stars below native content and above normal surface/message backgrounds;
   use screen blending and pale cores without inherited shadows to avoid dark spots.
 - Add experimental random positions with the same count, frequency and stagger.
