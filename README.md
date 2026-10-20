@@ -1,4 +1,4 @@
-# LunarCore v0.0.7 — Twilight and night effects
+# LunarCore v0.0.8 — Starlight and soft bloom
 
 LunarCore is a SillyTavern UI extension. Its first module is LunarDebug, an
 optional recorder for real-use diagnostic metadata, especially ImmersiveGroups.
@@ -19,13 +19,13 @@ Exports include the whole buffer regardless of the panel's event filter.
 
 The LunarCore drawer contains a small version label and separate LunarUI and
 LunarDebug drawers. Blue moon, laptop and butterfly icons identify them. LunarUI
-offers optional **Moonlight Blue** and **Twilight** recolors. Closing either drawer
+offers optional **Moonlight**, **Twilight** and **Starlight** recolors. Closing either drawer
 does not stop recording; attention counts remain visible on the LunarCore header.
 
 Open **LunarCore → LunarUI**, choose a **Night profile**, then enable recoloring.
-Moonlight Blue now has a softer, less saturated surrounding tint; Twilight uses
+Moonlight has a softer, less saturated surrounding tint; Twilight uses
 darker blue/purple surfaces with more transparency. Adjust panel opacity for
-each profile independently. Disabling recoloring restores the current native
+each profile independently, including regular, emphasized and quoted text colors. Starlight is dimmer and slows/dims the idle effects. Disabling recoloring restores the current native
 theme without rewriting it; layouts, images and background selection are untouched.
 
 **Night effects** can be enabled separately from recoloring: starlight twinkles,

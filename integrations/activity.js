@@ -27,7 +27,7 @@ export function createConfigurationTracker(api, activity, settings) {
         const next = new Map();
         for (const key of Object.keys(SETTINGS)) {
             const scene = key.startsWith('scene.'), local = scene ? key.slice(6) : key;
-            const profiles = scene || !['stage', 'sprite', 'layoutSprite'].some(prefix => key.startsWith(prefix)) ? ['shared'] : ['desktop', 'mobile'];
+            const profiles = scene || !(['stage', 'sprite', 'layoutSprite'].some(prefix => key.startsWith(prefix)) || ['recentSpeakerLimit', 'heightReferenceMode'].includes(key)) ? ['shared'] : ['desktop', 'mobile'];
             for (const profile of profiles) {
                 const object = scene ? state.sceneAutomation : profile === 'mobile' ? state.mobileLayoutSettings : state;
                 // Mobile inherits desktop values when there is no override.

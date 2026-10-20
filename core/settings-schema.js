@@ -23,6 +23,8 @@ export const SETTINGS = Object.freeze({
     entranceMotionStyle: choice('fade', 'slide'), breathingMotionScope: choice('speaker', 'all'),
     reactionMotionStyle: choice('hop', 'nod', 'tilt', 'shake'),
     backgroundPanMotionDirection: choice('left', 'right', 'up', 'down'),
+    backgroundPanMotionMobileVertical: boolean, recentSpeakerLimit: number(0, 50),
+    heightReferenceMode: choice('visible', 'group'),
     stageGap: number(0, 200), stageIdleOpacity: number(0, 100), stageFontSize: number(0, 100),
     spriteSpacingPercent: number(0, 300), layoutSpriteScale: number(0, 300),
     spriteOffsetY: number(-2000, 2000), stageOffsetX: number(-2000, 2000), stageOffsetY: number(-2000, 2000),

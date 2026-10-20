@@ -7,7 +7,7 @@ export const EVENTS = Object.freeze([
     'ui.action', 'ui.scroll', 'ui.theme', 'ig.setting_snapshot', 'ig.setting_change', 'ig.configuration',
     'recorder', 'integration', 'outfit.change', 'background.select',
     'background.automatic', 'background.observed', 'animation.swap', 'animation.background', 'animation.motion', 'motion.lifecycle', 'motion.coverage', 'sprite.lifecycle', 'sprite.inventory',
-    'automation.execute', 'automation.api', 'context.injection', 'context.history_cleanup',
+    'height.reset_all', 'automation.execute', 'automation.api', 'context.injection', 'context.history_cleanup',
     'host.chat_changed', 'host.group_updated', 'host.generation_started',
     'host.generation_ended', 'host.generation_stopped', 'host.message_swiped',
     'host.message_edited', 'host.message_deleted', 'host.settings_updated',
@@ -36,7 +36,7 @@ const enumFields = {
 };
 const numberFields = new Set(['count', 'durationMs', 'inMs', 'outMs', 'characters', 'commands', 'issues', 'applied', 'skipped', 'failed', 'depth', 'promptCharacters', 'messageCount', 'visibleCount', 'readyCount', 'nativeCount']);
 const booleanFields = new Set(['enabled', 'automatic', 'dryRun', 'dryRunKnown', 'reducedMotion', 'committed', 'changed',
-    'startAvailable', 'endAvailable', 'stopAvailable', 'afterCommandsAvailable', 'preview', 'loop', 'exiting', 'visible', 'imageReady', 'nativeTransition', 'motionHooks', 'spriteObserver']);
+    'startAvailable', 'endAvailable', 'stopAvailable', 'afterCommandsAvailable', 'streaming', 'preview', 'loop', 'exiting', 'visible', 'imageReady', 'nativeTransition', 'motionHooks', 'spriteObserver']);
 function safeFields(input) {
     const result = {};
     if (!input || typeof input !== 'object') return result;

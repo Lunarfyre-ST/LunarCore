@@ -48,3 +48,19 @@ test('area controls migrate independently and reject unknown or untyped values',
     assert.equal('privateArea' in prefs.effects.areas, false);
     assert.deepEqual(readUIPreferences(prefs), prefs);
 });
+
+test('Starlight and per-preset text preferences are typed, independent and migration safe', () => {
+    const prefs = readUIPreferences({ profile: 'starlight', text: {
+        starlight: { enabled: false, body: '#ABCDEF', emphasis: 'url(private)', quote: '#123456' },
+        moonlight: { body: '#fedcba' },
+    }, effects: { randomPositions: 'true' } });
+    assert.equal(prefs.profile, 'starlight');
+    assert.equal(prefs.opacity.starlight, 72);
+    assert.equal(prefs.text.starlight.body, '#abcdef');
+    assert.equal(prefs.text.starlight.emphasis, '#83899c');
+    assert.equal(prefs.text.starlight.enabled, false);
+    assert.equal(prefs.text.moonlight.body, '#fedcba');
+    assert.equal(prefs.text.twilight.body, '#bcb8cc');
+    assert.equal(prefs.effects.randomPositions, false);
+    assert.deepEqual(readUIPreferences(prefs), prefs);
+});

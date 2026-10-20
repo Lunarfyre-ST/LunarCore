@@ -22,6 +22,7 @@ const server = http.createServer(async (req, res) => {
             return;
         }
         res.setHeader('content-type', pathname.endsWith('.css') ? 'text/css' : 'text/javascript');
+        if (pathname === '/script.js') { res.end('export const saveSettingsDebounced=()=>{};'); return; }
         if (pathname === '/scripts/extensions.js') { res.end(`export const extension_settings={ImmersiveGroups:{enableVN_UI:true,outfitFadeEnabled:true,outfitFadeMode:'cross',outfitFadeIn:20,outfitFadeOut:20}};export const getContext=()=>window.ctx;`); return; }
         if (pathname === prefix + 'constants.js') { res.end(`export const extensionName='ImmersiveGroups';export const defaultSettings={};`); return; }
         const base = pathname.startsWith(prefix) ? igRoot : root;
@@ -72,7 +73,7 @@ try {
     assert.equal(await page.evaluate(() => document.querySelector('.prome-vn-settings').previousElementSibling === document.querySelector('.lunar-core')), true);
     assert.equal(await page.locator('.lunar-core').evaluate(node => node.open), false);
     await page.locator('.lunar-core > summary').click();
-    assert.equal(await page.locator('.lunar-version').textContent(), 'LunarCore 0.0.7');
+    assert.equal(await page.locator('.lunar-version').textContent(), 'LunarCore 0.0.8');
     assert.equal(await page.locator('.lunar-core > .lunar-drawer-content > details').count(), 2);
     await page.locator('.lunar-ui > summary').focus(); await page.keyboard.press('Enter');
     assert.equal(await page.locator('.lunar-ui').evaluate(node => node.open), true);
@@ -154,7 +155,7 @@ try {
     const json = JSON.parse(await readFile(await download.path(), 'utf8'));
     assert.equal(JSON.stringify(json).includes('PRIVATE'), false);
     assert.equal(json.schemaVersion, 4);
-    assert.equal(json.versions.lunarCore, '0.0.7');
+    assert.equal(json.versions.lunarCore, '0.0.8');
     assert.ok(json.events.some(row => row.event === 'ui.theme' && row.theme === 'moonlight_blue' && row.enabled === true));
     assert.ok(json.events.some(row => row.event === 'ig.setting_snapshot' && row.setting === 'outfitFadeIn' && row.value === 200));
     assert.ok(json.events.some(row => row.event === 'ig.setting_change' && row.before === 200 && row.after === 300 && row.count === 100));

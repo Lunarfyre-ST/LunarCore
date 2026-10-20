@@ -8,8 +8,9 @@ preserved, without automatically enabling animation.
 
 | Profile | Appearance | Default panel opacity |
 | --- | --- | --- |
-| Moonlight Blue | Muted blue accents and dark navy surfaces; softer surrounding tint and glow | 82% |
+| Moonlight | Muted blue accents and dark navy surfaces; softer surrounding tint and glow | 82% |
 | Twilight | Dark indigo/purple accents with more transparent surfaces | 58% |
+| Starlight | Dim blue-gray accents, quieter text and darker surfaces | 72% |
 
 Panel opacity ranges from 20–100% and is remembered separately for each profile.
 **Reset profile opacity** resets only the selected profile. Lower opacity reveals
@@ -21,11 +22,20 @@ including native theme changes made while the layer was active. It does not
 rewrite native theme settings or change layouts, sprite positions or chat data.
 Custom CSS can still override the pack's styles.
 
+Each preset has an independent **Recolor text** switch, color pickers for regular,
+emphasized and quoted text, and a reset button. Disabling text recoloring keeps
+native text colors while retaining the panel recolor. Validated six-digit hex
+colors are saved per preset. Existing Moonlight preferences migrate unchanged.
+
+Starlight dims effect strength to 65% and multiplies speed by 0.65 while its
+recolor is enabled. Global and area controls still apply. Recoloring off restores
+the normal effect pace independently of the chosen preset.
+
 ## Idle effects
 
 - **Starlight twinkles:** staggered stars across larger surfaces, with edge stars on headers.
 - **Shining sweeps:** occasional soft highlights across the chat window; headers and other chrome use edge highlights.
-- **Breathing glow:** a slow change in a decorative border's opacity.
+- **Soft bloom:** a breathing, diffuse inset light with two soft radii, not a border. Enable Soft bloom before using the area bloom-strength slider; it is disabled when bloom is off.
 
 Intensity ranges from 0–100%; speed ranges from 0.25×–2×. At the default 0.75×,
 cycles are about 13 seconds for twinkles, 24 for sweeps and 16 for breathing.
@@ -40,23 +50,27 @@ remain visible; zero disables that effect locally. Speeds multiply global speed.
 Chat twinkles default to 25% of global strength, composer to 35%.
 The master switch and global effect switches apply to every area.
 
-Surface selectors and defaults live in `modules/ui/areas.js`. Chat, composer,
-navigation and panels use frames inside their native chrome containers, keeping
-them in the native stacking and blur contexts. Chat uses `#sheld` and composer
-uses `#form_sheld`; generic fixtures without those wrappers use external fixed
-frames. Sheld decorations follow the visible `#chat` viewport, excluding IG
-controls above it and the composer below it. Its sweep spans that viewport's
-height; other chrome sweeps are masked to edges. No children are added to the chat list or
-send form. Large surfaces have 16 stars distributed through their interior and
-edges, composer has eight, and headers/navigation have four. Stars have a brighter
-core; low strength no longer multiplies down to nearly invisible opacity.
-Dialogs and headers use inert local layers. At most 80 surfaces are decorated;
-major surfaces precede headers. Pointer input and assistive technology ignore
-these layers. Resize, scroll, panel changes and dragging refresh their geometry.
-Hidden/offscreen animations pause; reduced motion removes layers. Disable and
-dispose clean up decorations, observers and listeners. Custom themes or new host
-surfaces may require additional explicit selectors; this does not theme sprites,
-background images or every individual message/control.
+**Random star positions (experimental)** starts off. It randomizes positions when
+enabled and again at each star's animation cycle. It preserves star count, cycle
+duration and stagger; ordinary settings updates do not reroll positions. Turning
+it off restores the original pattern. Positions are transient and never recorded.
+
+Surface selectors live in `modules/ui/areas.js`. Decorations sit above surface
+backgrounds and below native content. In chat, the layer is inside `#chat`, with
+native message text/media/actions raised above it; normal message backgrounds
+remain below it. Message contents and inputs are never read, copied or wrapped.
+Native positioning is preserved, and added classes/layers are removed on disable.
+Stars use light-only screen blending with pale cores and no inherited dark shadow.
+This prevents the blue star color from darkening lighter pixels on mobile.
+Opaque or separately isolated content from custom themes may cover decorations;
+LunarUI does not remove native backgrounds, blur filters or transforms.
+
+Chat decorations exclude IG controls and the composer, and follow the viewport
+while scrolling/resizing. Chat sweeps cross its full height; other chrome sweeps
+stay on edges. Large surfaces have 16 stars, composer eight, headers/navigation
+four. At most 80 surfaces are decorated. Layers are inert, hidden from assistive
+technology and ignore pointer input. Offscreen/hidden animations pause; reduced
+motion removes them. Disable/dispose removes observers, listeners and classes.
 
 ## Persistence and diagnostics ownership
 
@@ -65,7 +79,7 @@ per-profile opacity and effect controls. Existing `moonlightBlue` preferences
 migrate automatically, and the boolean remains synchronized for compatibility.
 Other modules' settings, including the optional local log archive, are preserved.
 
-LunarDebug's existing Moonlight-only preset event is preserved. Twilight names
+LunarDebug's existing Moonlight-only preset event is preserved. Twilight/Starlight names
 and effect settings are not encoded into that old enum or added to recorder
 schemas here; extending their diagnostic coverage belongs to the recorder owner.
 

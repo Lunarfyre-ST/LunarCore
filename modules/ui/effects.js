@@ -1,4 +1,5 @@
 import { EFFECT_AREAS } from './areas.js';
+import { createContentLayers } from './layers.js';
 
 const FLAGS = ['lunar-idle-effects', 'lunar-stars-on', 'lunar-sweeps-on', 'lunar-breathing-on', 'lunar-effects-paused'];
 
@@ -10,19 +11,37 @@ export function createNightEffects({ doc = document, win = window, onStateChange
         for (const entry of entries) hosts.get(entry.target)?.overlay.classList.toggle('lunar-ambient-visible', entry.isIntersecting);
     }) : null;
     const resize = win.ResizeObserver ? new win.ResizeObserver(schedule) : null;
+    function starPosition(star, index, random) {
+        star.style.removeProperty('left'); star.style.removeProperty('top'); star.style.removeProperty('bottom');
+        if (random) {
+            star.style.left = `${4 + Math.random() * 92}%`; star.style.top = `${8 + Math.random() * 80}%`; star.style.bottom = 'auto';
+        } else if (index >= 4) {
+            star.style.left = `${8 + ((index - 4) * 37 % 84)}%`; star.style.top = `${12 + ((index - 4) * 23 % 76)}%`;
+        }
+    }
     function tune(entry) {
         const local = options.areas[entry.area.id];
         for (const key of ['twinkles', 'sweeps', 'breathing']) {
             // Perceptual brightness keeps reduced area strengths visible on dark surfaces.
-            entry.overlay.style.setProperty(`--lunar-${key}-strength`, String(Math.sqrt(options.intensity / 100 * local[key] / 100)));
+            entry.overlay.style.setProperty(`--lunar-${key}-strength`, String(Math.sqrt(options.intensity / 100 * local[key] / 100) * (options.calm ? 0.65 : 1)));
             entry.overlay.classList.toggle(`lunar-no-${key}`, local[key] === 0);
         }
         for (const [key, base] of [['twinkle', 10], ['sweep', 18], ['breath', 12]]) {
-            entry.overlay.style.setProperty(`--lunar-${key}-time`, `${base / (options.speed * local.speed)}s`);
+            entry.overlay.style.setProperty(`--lunar-${key}-time`, `${base / (options.speed * local.speed * (options.calm ? 0.65 : 1))}s`);
+        }
+        if (entry.random !== options.randomPositions) {
+            [...entry.overlay.querySelectorAll('.lunar-star')].forEach((star, index) => starPosition(star, index, options.randomPositions));
+            entry.random = options.randomPositions;
         }
     }
     function position(host, entry) {
+        entry.layers?.refresh();
         if (!entry.area.portal) return;
+        if (entry.chatAnchor) {
+            const surface = entry.chatAnchor;
+            Object.assign(entry.overlay.style, { left: `${surface.scrollLeft}px`, top: `${surface.scrollTop}px`, width: `${surface.clientWidth}px`, height: `${surface.clientHeight}px`, zIndex: '0' });
+            return;
+        }
         if (entry.local) {
             // Keep the layer in native chrome, but size Sheld effects to the chat
             // viewport below IG controls and above the composer.
@@ -40,7 +59,7 @@ export function createNightEffects({ doc = document, win = window, onStateChange
             const top = surface === host ? 0 : (bounds.top - origin.top) / (scaleY || 1) - host.clientTop + surface.clientTop;
             const z = Math.max(0, ...[...host.children].filter(node => node !== entry.overlay).map(node => Number.parseInt(win.getComputedStyle(node).zIndex, 10) || 0));
             Object.assign(entry.overlay.style, { left: `${left + host.scrollLeft}px`, top: `${top + host.scrollTop}px`, width: `${surface.clientWidth}px`, height: `${surface.clientHeight}px`,
-                zIndex: String(z + 1), borderRadius: win.getComputedStyle(surface).borderRadius,
+                zIndex: entry.layers ? '0' : String(z + 1), borderRadius: win.getComputedStyle(surface).borderRadius,
                 display: !surface.getClientRects().length || win.getComputedStyle(surface).visibility === 'hidden' ? 'none' : '' });
             return;
         }
@@ -78,7 +97,8 @@ export function createNightEffects({ doc = document, win = window, onStateChange
         for (const className of ['lunar-sheen', 'lunar-halo']) {
             const layer = doc.createElement('span'); layer.className = className; overlay.append(layer);
         }
-        const local = area.portal && host.matches('#sheld, #form_sheld, #top-settings-holder, .drawer-content, #left-nav-panel, #right-nav-panel');
+        const chatAnchor = area.id === 'chat' ? (host.id === 'chat' ? host : host.querySelector('#chat')) : null;
+        const local = Boolean(chatAnchor) || (area.portal && host.matches('#sheld, #form_sheld, #top-settings-holder, .drawer-content, #left-nav-panel, #right-nav-panel'));
         const addedClass = (!area.portal || local) && win.getComputedStyle(host).position === 'static' && !host.classList.contains('lunar-effects-host');
         overlay.style.setProperty('--lunar-sweep-delay', `-${hosts.size % 7 * 2}s`);
         if (area.portal) {
@@ -86,18 +106,26 @@ export function createNightEffects({ doc = document, win = window, onStateChange
             if (local) {
                 overlay.classList.add('lunar-ambient-local');
                 if (addedClass) host.classList.add('lunar-effects-host');
-                host.append(overlay);
+                (chatAnchor || host).append(overlay);
             } else doc.body.append(overlay);
         }
         else { if (addedClass) host.classList.add('lunar-effects-host'); host.append(overlay); }
-        const entry = { overlay, addedClass, area, local }; hosts.set(host, entry); tune(entry); position(host, entry);
+        const entry = { overlay, addedClass, area, local, chatAnchor };
+        if (local || !area.portal) entry.layers = createContentLayers(chatAnchor || host, overlay, win);
+        overlay.addEventListener('animationiteration', event => {
+            if (options.randomPositions && event.animationName === 'lunar-twinkle' && event.target.matches('.lunar-star')) starPosition(event.target, 0, true);
+        });
+        hosts.set(host, entry); tune(entry); position(host, entry);
         resize?.observe(host);
+        if (chatAnchor && chatAnchor !== host) resize?.observe(chatAnchor);
         if (visibility) visibility.observe(host); else overlay.classList.add('lunar-ambient-visible');
     }
     function remove(host) {
         const entry = hosts.get(host);
         if (!entry) return;
         visibility?.unobserve(host); resize?.unobserve(host); entry.overlay.remove();
+        entry.layers?.dispose();
+        if (entry.chatAnchor && entry.chatAnchor !== host) resize?.unobserve(entry.chatAnchor);
         if (entry.surface && entry.surface !== host) resize?.unobserve(entry.surface);
         if (entry.addedClass) host.classList.remove('lunar-effects-host');
         hosts.delete(host);
@@ -114,7 +142,8 @@ export function createNightEffects({ doc = document, win = window, onStateChange
                 if (!desired.has(host) && desired.size < 80) desired.set(host, area);
             }
         }
-        for (const [host, entry] of hosts) if (!desired.has(host) || !entry.overlay.isConnected) remove(host);
+        for (const [host, entry] of hosts) if (!desired.has(host) || !entry.overlay.isConnected ||
+            (entry.area.id === 'chat' && entry.chatAnchor !== (host.id === 'chat' ? host : host.querySelector('#chat')))) remove(host);
         for (const [host, area] of desired) decorate(host, area);
         for (const [host, entry] of hosts) position(host, entry);
     }

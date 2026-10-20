@@ -175,3 +175,12 @@ eviction, resize, Stop or Clear breaks grouping. Visible-image errors stay
 individual. `attentionCount` still counts observations; `attentionRetained` counts
 retained records, so they can differ. The matching attention/main summary shares
 its sequence and count; deduplicate by sequence when combining arrays.
+
+## IG 0.3.8
+
+Configuration includes per-layout recentSpeakerLimit / heightReferenceMode and
+shared backgroundPanMotionMobileVertical. Height reset-all emits only a count
+and changed flag, never character identities. automation.execute includes the
+boolean streaming boundary. A command applied during streaming is already a
+scene change: later Stop/revision cancels pending work but cannot undo it. These
+additions retain recorder schema 4 and producer protocol 1.

@@ -37,3 +37,15 @@ test('motion operations retain safe outcomes and cannot cross recording sessions
     const count = recorder.stats().count; stopped.finish({ outcome: 'completed' });
     assert.equal(recorder.stats().count, count);
 });
+
+test('0.3.8 speaker/reference settings preserve profile ownership and streaming metadata is safe', () => {
+    const recorder = createRecorder(); recorder.start(); const activity = createActivity(recorder.api);
+    const settings = { recentSpeakerLimit: 0, heightReferenceMode: 'visible', mobileLayoutSettings: { recentSpeakerLimit: 2, heightReferenceMode: 'group' }, backgroundPanMotionMobileVertical: true };
+    createConfigurationTracker(recorder.api, activity, () => settings).scan(true);
+    assert.ok(recorder.entries().some(r => r.setting === 'recentSpeakerLimit' && r.profile === 'mobile' && r.value === 2));
+    assert.ok(recorder.entries().some(r => r.setting === 'heightReferenceMode' && r.profile === 'desktop' && r.value === 'visible'));
+    recorder.api.emit('automation.execute', { streaming: true, prompt: 'PRIVATE' });
+    assert.equal(recorder.entries().at(-1).streaming, true);
+    recorder.api.emit('height.reset_all', { characters: 4, changed: true, avatar: 'PRIVATE' });
+    assert.equal(JSON.stringify(recorder.export()).includes('PRIVATE'), false);
+});

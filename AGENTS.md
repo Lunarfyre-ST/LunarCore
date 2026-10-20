@@ -3,7 +3,7 @@
 ## Purpose and current scope
 
 LunarCore is one modular SillyTavern UI extension. LunarDebug is an optional
-metadata recorder; LunarUI offers Moonlight Blue/Twilight recolors and optional
+metadata recorder; LunarUI offers Moonlight/Twilight/Starlight recolors and optional
 night-themed effects with independent area controls. Do not
 describe unimplemented UI, state or memory features as available.
 
@@ -48,7 +48,9 @@ the ImmersiveGroups repository; LunarDebug remains a LunarCore module.
 | `modules/debug/index.js` | Recorder controls, status, filters and download |
 | `modules/ui/index.js` | Night profile/effect controls and cleanup |
 | `modules/ui/preferences.js` | Typed profile/effect settings and legacy Moonlight migration |
-| `modules/ui/effects.js` | Bounded decorative header layers, visibility and reduced-motion handling |
+| `modules/ui/effects.js` | Bounded decorative area layers, random positions, bloom, visibility and reduced motion |
+| `modules/ui/layers.js` | Native content above decoration; reversible class ownership |
+| `modules/ui/areas.js` | Fixed surface selectors and area defaults |
 | `integrations/immersivegroups.js` | Host/IG subscriptions, snapshots, native background observation |
 | `integrations/activity.js` | UI action mapping, configuration ownership/diffs and activity windows |
 | `integrations/generation.js` | Generation coverage, dry runs and conservative lifecycle observations |

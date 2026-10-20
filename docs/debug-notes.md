@@ -77,3 +77,32 @@
   reproduce native placeholder initialization before chat selection, preserving
   error visibility and source-change boundaries without collecting private paths.
 - Shared notes updated; analysis only, no runtime changes or tests required.
+
+## Recording (7), analyzed 2026-10-20 — ImmersiveGroups context
+
+- LunarCore 0.0.7 / ImmersiveGroups 0.3.8; schema 4 / protocol 1. Live
+  export: 1331 main records, 0 dropped, 106 summarized; 30 attention
+  observations in 26 retained attention records, 0 attention records dropped.
+  Deduplicate events/attentionEvents by sequence; these are shared observations.
+- All 30 attention observations are sprite.lifecycle load_error, failed/error,
+  invisible and unready. Five repeats belong to one hidden solo image operation,
+  nativeTransition false, grouped from 247 to 182681 ms. This resembles the
+  previously observed hidden solo-image pattern; source identity remains unknown.
+- The other 25 observations belong to 25 desktop image operations with
+  nativeTransition true, from 4342 to 222789 ms. Every affected operation has
+  observed/load_error/removed stages; none records loaded, visible or ready.
+  This adds a native-transition pattern beyond the earlier solo-only captures.
+- Native-transition metadata describes the holder state; it does not prove which
+  transition image was intended for display. Temporary placeholder/clone image
+  initialization is a hypothesis to investigate, not a confirmed cause. The
+  recording contains no asset source or HTTP status and cannot identify a
+  missing file, attribute responsibility, or establish that failures are harmless.
+- No other failed outcomes or error-named events appear in the retained events.
+  Final inventory at 695328 ms reports 4 images, 3 visible, 3 ready and 0 in native
+  transition. This is aggregate state, not recovery of the failed image operations
+  or proof that no visual glitches occurred. Cancellation count 267 is separate
+  from attention count and must not be added to the 30 errors.
+- Next check: reproduce native expression replacement locally and inspect hidden
+  image/clone initialization and request failures without exporting private asset
+  identifiers. Preserve actual image-error reporting rather than suppressing all
+  hidden-image failures. Analysis/documentation only; no runtime changes or tests.
