@@ -22,11 +22,11 @@ including native theme changes made while the layer was active. It does not
 rewrite native theme settings, sprite positions or chat data.
 Custom CSS can still override the pack's styles.
 
-While recoloring is on, VN chat uses square top corners without the native top
-border, and the composer has no 1px top margin. Its panel tint/border apply from
+While recoloring is on, VN chat keeps its native rounded corners without the top
+border line, and the composer has no 1px top margin. Its panel tint/border apply from
 first insertion and remain consistent across focus/blur and chat replacement,
 independently of idle effects. Native keyboard focus indication is kept, tinted
-to the preset. Disabling recoloring restores the native corners, border, margin
+to the preset. Disabling recoloring restores the native border, margin
 and composer colors, including current native inline styling.
 
 Each preset has an independent **Recolor text** switch, color pickers for regular,

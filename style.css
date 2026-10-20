@@ -90,8 +90,6 @@ body.lunar-recolor {
    CSS also covers newly inserted composers before any input/settings event. */
 body.lunar-recolor.waifuMode #sheld #chat {
     border-top-width: 0;
-    border-top-left-radius: 0;
-    border-top-right-radius: 0;
 }
 body.lunar-recolor #sheld #form_sheld { margin-top: 0; }
 body.lunar-recolor #sheld #send_form {

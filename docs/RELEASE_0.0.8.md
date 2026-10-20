@@ -13,7 +13,7 @@
   element. This prevents ST's `#chat { bottom:10px }` from shifting chat upward
   and opening a gap above Quick Replies. Existing positioned elements retain
   their offsets; the separate viewport-bottom gap remains unattributed.
-- While recoloring is enabled, remove the VN chat top border/rounded top corners
+- While recoloring is enabled, hide the VN chat top border while keeping rounded corners
   and the native 1px composer margin, keeping welcome/chat joins consistent.
   Explicit composer tint/border styles also cover initial insertion, replacement,
   focus and blur without user actions. Keyboard focus indication remains visible.

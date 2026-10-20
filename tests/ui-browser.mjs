@@ -258,7 +258,8 @@ try {
     });
     assert.equal((await measureSheld()).gap, 0);
     assert.equal((await measureSheld()).border, '0px');
-    assert.equal(await page.locator('#chat').evaluate(node => getComputedStyle(node).borderTopLeftRadius), '0px');
+    assert.equal(await page.locator('#chat').evaluate(node => getComputedStyle(node).borderTopLeftRadius), '20px');
+    assert.equal(await page.locator('#chat').evaluate(node => getComputedStyle(node).borderTopRightRadius), '20px');
     const composerTint = await page.locator('#send_form').evaluate(node => getComputedStyle(node).backgroundColor);
     assert.equal(composerTint, 'rgba(10, 8, 21, 0.46)');
     await page.evaluate(() => {
