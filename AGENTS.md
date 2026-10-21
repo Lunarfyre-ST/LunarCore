@@ -49,6 +49,7 @@ the ImmersiveGroups repository; LunarDebug remains a LunarCore module.
 | `modules/ui/index.js` | Night profile/effect controls and cleanup |
 | `modules/ui/preferences.js` | Typed profile/effect settings and legacy Moonlight migration |
 | `modules/ui/effects.js` | Bounded decorative area layers, random positions, bloom, visibility and reduced motion |
+| `modules/ui/animation-driver.js` | Keyframe-independent compatibility animation; bounded paints and visibility cleanup |
 | `modules/ui/layers.js` | Native content above decoration; reversible class ownership |
 | `modules/ui/areas.js` | Fixed surface selectors and area defaults |
 | `modules/ui/opt-out.js` | Extension boundaries and ancestor effect clipping; contract in docs/LUNAR_UI_INTEGRATION.md |

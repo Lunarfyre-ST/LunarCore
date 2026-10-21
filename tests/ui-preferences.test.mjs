@@ -9,6 +9,10 @@ test('old Moonlight choices migrate without enabling motion or dropping explicit
     assert.equal(legacy.opacity.twilight < legacy.opacity.moonlight, true);
     assert.equal(readUIPreferences({ enabled: false, moonlightBlue: true }).enabled, false);
     assert.equal(readUIPreferences(null).enabled, false);
+    assert.equal(readUIPreferences().mobileScrollGuard, false);
+    assert.equal(readUIPreferences({ mobileScrollGuard: true }).mobileScrollGuard, true);
+    assert.equal(readUIPreferences({ mobileScrollGuard: 'true' }).mobileScrollGuard, false);
+    assert.equal('mobileScrollGuard' in presetConfig({ mobileScrollGuard: true }), false);
 });
 
 test('settings are bounded, typed and independent for each profile', () => {
@@ -77,6 +81,9 @@ test('strong quote defaults migrate previous defaults while preserving custom ch
 });
 
 test('custom presets and imports are bounded, typed snapshots without recorder data', () => {
+    assert.equal(readUIPreferences().effects.renderer, 'auto');
+    assert.equal(readUIPreferences({ effects: { renderer: 'compatibility' } }).effects.renderer, 'compatibility');
+    assert.equal(readUIPreferences({ effects: { renderer: 'PRIVATE' } }).effects.renderer, 'auto');
     const config = presetConfig({ enabled: true, profile: 'starlight', effects: { enabled: true, speed: 1.2, frequency: 4, areas: { chat: { density: 900 } } }, debug: { private: 'PRIVATE' }, unknown: 'PRIVATE' });
     assert.equal(config.effects.frequency, 2);
     assert.equal(config.effects.areas.chat.density, 200);

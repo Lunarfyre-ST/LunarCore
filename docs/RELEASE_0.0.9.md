@@ -12,6 +12,15 @@
   sweeps avoid combined animated transforms/clipping/blending. Observe the actual
   chat viewport for visibility, including when an extension positions it outside
   the outer Sheld wrapper. Keep timing, density and random cycles unchanged.
+- Add an Animation renderer selector. Automatic uses a keyframe-independent
+  compatibility driver on touch devices and CSS on desktop. The driver is capped
+  at 24 paints/second, pauses offscreen/hidden and stops under reduced motion;
+  density, strength, timing and random positions remain adjustable.
+- Add an independent, off-by-default experimental mobile page-drift guard. It
+  contains root/chat overscroll without changing native Sheld dimensions or
+  rounding. Disable all/cleanup restores the previous cascade. It is not included
+  in appearance imports/exports and does not establish a fix for native/IG
+  visual-viewport behavior.
 - Add `data-lunar-ui="off|colors|effects"` subtree boundaries for extensions,
   including live changes, native root palette restoration and ancestor effect
   clipping. See LUNAR_UI_INTEGRATION.md for syntax, examples and limits.

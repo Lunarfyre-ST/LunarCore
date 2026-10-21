@@ -18,6 +18,7 @@ export function readUIPreferences(value = {}) {
     return {
         customPresets,
         selectedPreset: customPresets.some(preset => preset.id === value?.selectedPreset) ? value.selectedPreset : '',
+        mobileScrollGuard: value?.mobileScrollGuard === true,
         enabled: typeof value?.enabled === 'boolean' ? value.enabled : value?.moonlightBlue === true,
         profile: typeof value?.profile === 'string' && Object.hasOwn(PROFILE_DEFAULTS, value.profile) ? value.profile : 'moonlight',
         textPaletteVersion: 2,
@@ -34,6 +35,7 @@ export function readUIPreferences(value = {}) {
             })),
         }])),
         effects: {
+            renderer: ['auto', 'css', 'compatibility'].includes(value?.effects?.renderer) ? value.effects.renderer : 'auto',
             enabled: value?.effects?.enabled === true,
             twinkles: typeof value?.effects?.twinkles === 'boolean' ? value.effects.twinkles : true,
             sweeps: typeof value?.effects?.sweeps === 'boolean' ? value.effects.sweeps : true,

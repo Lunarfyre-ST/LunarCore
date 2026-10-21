@@ -41,6 +41,12 @@ their UI with `data-lunar-ui="off"` to exclude LunarUI overhauls, or choose
 `colors` / `effects`. See the [extension contract](docs/LUNAR_UI_INTEGRATION.md)
 for examples and boundaries. Native chat borders/rounding remain native.
 
+If a mobile browser hides stars/sweeps, use **Animation renderer → Compatibility
+animations**; Automatic selects that path on touch devices. An independent
+**Prevent mobile page drift (experimental)** toggle can contain page overscroll
+when the surrounding page pans during chat scrolling. It starts off and does not
+change Sheld dimensions. Samsung Internet app mode still requires device testing.
+
 ## Background use
 
 Enable recording and optionally auto-start, then leave the panel closed while

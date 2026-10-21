@@ -8,9 +8,12 @@ export function mountUI(target, context, { onChange = () => {} } = {}) {
     const settings = context.extensionSettings || context.extension_settings;
     const preferences = readUIPreferences(settings?.LunarCore?.ui);
     let disposed = false;
+    const touch = window.matchMedia('(hover: none) and (pointer: coarse)');
     let lastMoonlight = preferences.enabled && preferences.profile === 'moonlight';
     panel.content.innerHTML = `
         <button type="button" class="menu_button" data-ui-disable-all>Disable all LunarUI styling and effects</button>
+        <label class="lunar-theme-toggle"><input type="checkbox" data-mobile-scroll-guard> Prevent mobile page drift (experimental)</label>
+        <p>Contain page overscroll while keeping chat scrolling. Independent of recoloring/effects; turn this off if it interferes with your layout.</p>
         <label class="lunar-theme-toggle"><input type="checkbox" data-moonlight> Enable recoloring</label>
         <label class="lunar-ui-field">Night profile<select class="text_pole" data-ui-profile><option value="moonlight">Moonlight</option><option value="twilight">Twilight</option><option value="starlight">Starlight</option></select></label>
         <details class="lunar-preset-tools"><summary>Save or share a custom preset</summary>
@@ -31,6 +34,8 @@ export function mountUI(target, context, { onChange = () => {} } = {}) {
         <fieldset class="lunar-effects-settings"><legend>Night effects</legend>
         <label class="lunar-theme-toggle"><input type="checkbox" data-ui-effects> Enable idle effects</label>
         <div class="lunar-effects-options">
+        <label class="lunar-ui-field">Animation renderer<select class="text_pole" data-ui-renderer><option value="auto">Automatic (compatibility on touch devices)</option><option value="css">CSS animations</option><option value="compatibility">Compatibility animations</option></select></label>
+        <p>Compatibility animates stars and sweeps without CSS keyframes. Use it if your browser hides them; reduced motion still stops effects.</p>
         <label class="lunar-theme-toggle"><input type="checkbox" data-ui-twinkles> Starlight twinkles</label>
         <label class="lunar-theme-toggle"><input type="checkbox" data-ui-sweeps> Shining sweeps</label>
         <label class="lunar-theme-toggle"><input type="checkbox" data-ui-breathing> Soft bloom</label>
@@ -78,6 +83,9 @@ export function mountUI(target, context, { onChange = () => {} } = {}) {
     const effects = createNightEffects({ onStateChange(value) { effectState = value; status(); } });
     function apply() {
         const { profile, opacity } = preferences;
+        document.documentElement.classList.toggle('lunar-mobile-scroll-guard', preferences.mobileScrollGuard && touch.matches);
+        document.body.classList.toggle('lunar-mobile-scroll-guard', preferences.mobileScrollGuard && touch.matches);
+        query('[data-mobile-scroll-guard]').checked = preferences.mobileScrollGuard;
         for (const option of panel.content.querySelectorAll('option[data-custom]')) option.remove();
         for (const preset of preferences.customPresets) {
             const option = document.createElement('option'); option.value = preset.id; option.textContent = preset.name; option.dataset.custom = ''; query('[data-ui-profile]').append(option);
@@ -111,6 +119,8 @@ export function mountUI(target, context, { onChange = () => {} } = {}) {
         query('[data-ui-speed]').value = preferences.effects.speed;
         query('[data-ui-intensity]').value = preferences.effects.intensity;
         query('[data-ui-effects]').checked = preferences.effects.enabled;
+        query('[data-ui-renderer]').value = preferences.effects.renderer;
+        query('[data-ui-renderer]').disabled = !preferences.effects.enabled;
         query('[data-ui-random]').checked = preferences.effects.randomPositions;
         query('[data-moonlight]').checked = preferences.enabled;
         for (const key of ['twinkles', 'sweeps', 'breathing']) query(`[data-ui-${key}]`).checked = preferences.effects[key];
@@ -128,6 +138,7 @@ export function mountUI(target, context, { onChange = () => {} } = {}) {
     for (const key of ['body', 'emphasis', 'quote']) query(`[data-text-${key}]`).addEventListener('input', event => { preferences.text[preferences.profile][key] = event.target.value; persist(); });
     query('[data-text-reset]').addEventListener('click', () => { preferences.text[preferences.profile] = { enabled: true, ...TEXT_DEFAULTS[preferences.profile] }; persist(); });
     query('[data-ui-random]').addEventListener('change', event => { preferences.effects.randomPositions = event.target.checked; persist(); });
+    query('[data-ui-renderer]').addEventListener('change', event => { preferences.effects.renderer = event.target.value; persist(); });
     query('[data-moonlight]').addEventListener('change', event => { preferences.enabled = event.target.checked; persist(); });
     query('[data-ui-profile]').addEventListener('change', event => {
         const custom = preferences.customPresets.find(preset => preset.id === event.target.value);
@@ -146,7 +157,8 @@ export function mountUI(target, context, { onChange = () => {} } = {}) {
         preferences.effects.areas[query('[data-ui-area]').value][key] = Number(event.target.value); persist();
     });
     query('[data-area-reset]').addEventListener('click', () => { const id = query('[data-ui-area]').value; preferences.effects.areas[id] = readUIPreferences().effects.areas[id]; persist(); });
-    query('[data-ui-disable-all]').addEventListener('click', () => { preferences.enabled = false; preferences.effects.enabled = false; persist(); });
+    query('[data-mobile-scroll-guard]').addEventListener('change', event => { preferences.mobileScrollGuard = event.target.checked; persist(); });
+    query('[data-ui-disable-all]').addEventListener('click', () => { preferences.enabled = false; preferences.effects.enabled = false; preferences.mobileScrollGuard = false; persist(); });
     query('[data-preset-reset]').addEventListener('click', () => {
         const custom = preferences.customPresets.find(preset => preset.id === preferences.selectedPreset);
         if (custom) Object.assign(preferences, presetConfig(custom.config));
@@ -181,9 +193,12 @@ export function mountUI(target, context, { onChange = () => {} } = {}) {
     const reset = document.createElement('button'); reset.type = 'button'; reset.className = 'menu_button'; reset.textContent = 'Reset profile opacity';
     reset.addEventListener('click', () => { preferences.opacity[preferences.profile] = PROFILE_DEFAULTS[preferences.profile]; persist(); });
     query('[data-ui-opacity]').closest('label').after(reset);
+    touch.addEventListener('change', apply);
     apply();
     return () => {
         disposed = true;
+        touch.removeEventListener('change', apply);
+        document.documentElement.classList.remove('lunar-mobile-scroll-guard'); document.body.classList.remove('lunar-mobile-scroll-guard');
         effects.dispose(); document.body.classList.remove('lunar-moonlight', 'lunar-twilight', 'lunar-starlight', 'lunar-text-recolor', 'lunar-recolor');
         for (const key of ['body', 'emphasis', 'quote']) document.body.style.removeProperty(`--lunar-text-${key}`);
         document.body.style.removeProperty('--lunar-panel-opacity'); panel.drawer.remove();

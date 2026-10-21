@@ -1,18 +1,22 @@
 import { EFFECT_AREAS } from './areas.js';
 import { createContentLayers } from './layers.js';
 import { isEffectsOptedOut, clipOptOuts } from './opt-out.js';
+import { createAnimationDriver } from './animation-driver.js';
 
 const FLAGS = ['lunar-idle-effects', 'lunar-stars-on', 'lunar-sweeps-on', 'lunar-breathing-on', 'lunar-effects-paused'];
 
 export function createNightEffects({ doc = document, win = window, onStateChange = () => {} } = {}) {
     const motion = win.matchMedia('(prefers-reduced-motion: reduce)');
+    const touch = win.matchMedia('(hover: none) and (pointer: coarse)');
     const hosts = new Map();
     let options = {}, observing = false, disposed = false, frame = null;
     const visibility = win.IntersectionObserver ? new win.IntersectionObserver(entries => {
         for (const observation of entries) for (const entry of hosts.values()) {
             if (entry.visibilityTarget === observation.target) entry.overlay.classList.toggle('lunar-ambient-visible', observation.isIntersecting);
         }
+        driver.refresh();
     }) : null;
+    const driver = createAnimationDriver({ win, doc, entries: () => hosts.values(), randomize: (star, index) => starPosition(star, index, true) });
     const resize = win.ResizeObserver ? new win.ResizeObserver(schedule) : null;
     function starPosition(star, index, random) {
         star.style.removeProperty('left'); star.style.removeProperty('top'); star.style.removeProperty('bottom');
@@ -41,6 +45,16 @@ export function createNightEffects({ doc = document, win = window, onStateChange
         for (const [key, base] of [['twinkle', 10], ['sweep', 18], ['breath', 12]]) {
             entry.overlay.style.setProperty(`--lunar-${key}-time`, `${base / ((key === 'twinkle' ? options.frequency : options.speed) * local.speed * (options.calm ? 0.65 : 1))}s`);
         }
+        entry.compatibility = options.renderer === 'compatibility' || (options.renderer !== 'css' && touch.matches);
+        entry.animation = {
+            twinkles: options.twinkles && local.twinkles > 0 && options.intensity > 0, sweeps: options.sweeps && local.sweeps > 0 && options.intensity > 0,
+            random: options.randomPositions,
+            twinkleTime: 10 / (options.frequency * local.speed * (options.calm ? .65 : 1)),
+            sweepTime: 18 / (options.speed * local.speed * (options.calm ? .65 : 1)),
+            twinkleStrength: Math.sqrt(options.intensity / 100 * local.twinkles / 100) * (options.calm ? .65 : 1),
+            sweepStrength: Math.sqrt(options.intensity / 100 * local.sweeps / 100) * (options.calm ? .65 : 1),
+        };
+        entry.cycles = new WeakMap();
         if (entry.random !== options.randomPositions) {
             [...entry.overlay.querySelectorAll('.lunar-star')].forEach((star, index) => starPosition(star, index, options.randomPositions));
             entry.random = options.randomPositions;
@@ -152,6 +166,7 @@ export function createNightEffects({ doc = document, win = window, onStateChange
         for (const [host, entry] of hosts) {
             position(host, entry); clipOptOuts(entry.chatAnchor || host, entry.overlay, win);
         }
+        driver.refresh();
     }
     function schedule() { if (observing && frame === null && !doc.hidden) frame = win.requestAnimationFrame(sync); }
     const observer = new win.MutationObserver(records => {
@@ -186,10 +201,11 @@ export function createNightEffects({ doc = document, win = window, onStateChange
             if (frame !== null) win.cancelAnimationFrame(frame); frame = null;
             for (const host of [...hosts.keys()]) remove(host);
         }
+        driver.refresh();
         onStateChange({ active, reducedMotion: motion.matches, hidden: doc.hidden });
     }
     const dragging = event => { if (event.buttons) schedule(); };
-    motion.addEventListener('change', refresh); doc.addEventListener('visibilitychange', refresh);
+    motion.addEventListener('change', refresh); touch.addEventListener('change', refresh); doc.addEventListener('visibilitychange', refresh);
     win.addEventListener('resize', schedule); doc.addEventListener('scroll', schedule, true);
     doc.addEventListener('pointermove', dragging); doc.addEventListener('transitionend', schedule, true);
     return {
@@ -202,9 +218,9 @@ export function createNightEffects({ doc = document, win = window, onStateChange
             refresh();
         },
         dispose() {
-            disposed = true; observing = false; observer.disconnect(); visibility?.disconnect(); resize?.disconnect();
+            disposed = true; observing = false; observer.disconnect(); visibility?.disconnect(); resize?.disconnect(); driver.dispose();
             if (frame !== null) win.cancelAnimationFrame(frame);
-            motion.removeEventListener('change', refresh); doc.removeEventListener('visibilitychange', refresh);
+            motion.removeEventListener('change', refresh); touch.removeEventListener('change', refresh); doc.removeEventListener('visibilitychange', refresh);
             win.removeEventListener('resize', schedule); doc.removeEventListener('scroll', schedule, true);
             doc.removeEventListener('pointermove', dragging); doc.removeEventListener('transitionend', schedule, true);
             for (const host of [...hosts.keys()]) remove(host);

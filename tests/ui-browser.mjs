@@ -52,6 +52,11 @@ try {
     await page.locator('[data-ui-profile]').selectOption('twilight');
     assert.equal(await page.locator('[data-text-body]').inputValue(), '#b0b8c0');
     await page.locator('[data-ui-effects]').check();
+    await page.locator('[data-ui-renderer]').selectOption('compatibility');
+    await page.waitForFunction(() => document.querySelector('.lunar-compatibility'));
+    await page.locator('[data-ui-renderer]').selectOption('auto');
+    assert.equal(await page.locator('.lunar-compatibility').count(), 0);
+    assert.equal(await page.locator('.lunar-star').first().evaluate(node => node.style.opacity), '');
     assert.equal(await page.locator('[data-area-breathing]').isDisabled(), true);
     await page.locator('[data-ui-breathing]').check();
     assert.equal(await page.locator('[data-area-breathing]').isDisabled(), false);
@@ -358,7 +363,7 @@ try {
         const sheld = document.createElement('div'); sheld.id = 'sheld';
         sheld.style.cssText = 'position:fixed;top:50px;left:0;width:100%;height:700px;overflow:visible';
         const chat = document.createElement('div'); chat.id = 'chat';
-        chat.style.cssText = 'position:absolute;top:50px;width:100%;height:400px;overflow:auto;background:#101522;backdrop-filter:blur(10px);border-radius:20px 20px 0 0';
+        chat.style.cssText = 'position:absolute;top:50px;width:100%;height:400px;padding:10px 5px 20px;box-sizing:border-box;overflow:auto;background:#101522;backdrop-filter:blur(10px);border-radius:20px 20px 0 0';
         for (let i = 0; i < 30; i++) {
             const message = document.createElement('div'); message.className = 'mes'; message.style.cssText = 'position:relative;min-height:100px;background:#293749';
             const text = document.createElement('div'); text.className = 'mes_text'; text.textContent = 'Disposable mobile fixture'; message.append(text); chat.append(message);
@@ -367,7 +372,8 @@ try {
         const { createNightEffects } = await import('/modules/ui/effects.js');
         const { readUIPreferences } = await import('/modules/ui/preferences.js');
         window.phoneEffects = createNightEffects();
-        window.phoneOptions = readUIPreferences({ effects: { enabled: true, intensity: 100, areas: { chat: { twinkles: 100, sweeps: 100 } } } }).effects;
+        window.phoneOptions = readUIPreferences({ effects: { renderer: 'css', enabled: true, intensity: 100, areas: { chat: { twinkles: 100, sweeps: 100 } } } }).effects;
+        window.nativePhoneScrollHeight = chat.scrollHeight;
         phoneEffects.update(phoneOptions); chat.scrollTop = 1200;
     });
     await phone.waitForFunction(() => document.querySelector('#chat > .lunar-ambient-visible'));
@@ -407,6 +413,16 @@ try {
     }, { before: withoutEffects.toString('base64'), after: withEffects.toString('base64'), points });
     assert.ok(pixelGains[0] > 80, 'Touch stars must brighten raster pixels above message backgrounds');
     assert.ok(pixelGains[1] > 5, 'Touch sweeps must render across the chat interior');
+    const scrollHeights = await phone.evaluate(async () => {
+        const chat = document.getElementById('chat'), heights = [];
+        for (let i = 0; i < 5; i++) {
+            chat.scrollTop = chat.scrollHeight;
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            heights.push(chat.scrollHeight);
+        }
+        return { native: nativePhoneScrollHeight, heights };
+    });
+    assert.deepEqual(scrollHeights.heights, Array(5).fill(scrollHeights.native), 'Decoration must not extend a padded chat while scrolling to its end');
     // An extension can position a visible chat outside its wrapper's bounds.
     await phone.evaluate(() => {
         document.getElementById('sheld').style.top = '-1000px'; document.getElementById('sheld').style.height = '500px';
@@ -419,9 +435,64 @@ try {
     const phonePosition = await phoneStar.evaluate(node => [node.style.left, node.style.top]);
     await phoneStar.evaluate(node => node.dispatchEvent(new AnimationEvent('animationiteration', { animationName: 'lunar-twinkle-touch', bubbles: true })));
     assert.notDeepEqual(await phoneStar.evaluate(node => [node.style.left, node.style.top]), phonePosition);
+    // Compatibility mode keeps painting with CSS keyframe animations unavailable.
+    await phone.evaluate(() => {
+        const block = document.createElement('style'); block.textContent = '.lunar-star, .lunar-sheen { animation: none !important; }'; document.head.append(block);
+        phoneOptions.renderer = 'auto'; phoneOptions.frequency = 2; phoneOptions.speed = 2; phoneOptions.randomPositions = false;
+        phoneEffects.update(phoneOptions);
+    });
+    await phone.waitForFunction(() => {
+        const sheen = document.querySelector('.lunar-sheen'), rect = sheen.getBoundingClientRect();
+        return Number(sheen.style.opacity) > .3 && rect.x + rect.width / 2 > 0 && rect.x + rect.width / 2 < innerWidth &&
+            [...document.querySelectorAll('.lunar-star')].some(star => Number(star.style.opacity) > .3);
+    });
+    await phone.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, value: true }); document.dispatchEvent(new Event('visibilitychange')); });
+    assert.equal(await phone.locator('.lunar-compatibility').count(), 1);
+    assert.equal(await phoneStar.evaluate(node => getComputedStyle(node).animationName), 'none');
+    const driverPoints = await phone.evaluate(() => {
+        const star = [...document.querySelectorAll('.lunar-star')].sort((a, b) => Number(b.style.opacity) - Number(a.style.opacity))[0];
+        return [star, document.querySelector('.lunar-sheen')].map(node => {
+            const rect = node.getBoundingClientRect(); return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+        });
+    });
+    await phone.locator('.lunar-ambient').evaluate(node => node.style.visibility = 'hidden');
+    const driverBefore = await phone.screenshot();
+    await phone.locator('.lunar-ambient').evaluate(node => node.style.removeProperty('visibility'));
+    const driverAfter = await phone.screenshot({ path: path.join(root, 'tests/artifacts/lunar-mobile-compatibility.png') });
+    const gains = await phone.evaluate(async ({ before, after, points }) => {
+        async function pixels(data) {
+            const image = new Image(); image.src = `data:image/png;base64,${data}`; await image.decode();
+            const canvas = document.createElement('canvas'); canvas.width = image.width; canvas.height = image.height;
+            const context = canvas.getContext('2d'); context.drawImage(image, 0, 0);
+            return points.map(point => [...context.getImageData(Math.floor(point.x * devicePixelRatio), Math.floor(point.y * devicePixelRatio), 1, 1).data].slice(0, 3));
+        }
+        const a = await pixels(before), b = await pixels(after);
+        return b.map((rgb, i) => rgb.reduce((sum, value, channel) => sum + value - a[i][channel], 0));
+    }, { before: driverBefore.toString('base64'), after: driverAfter.toString('base64'), points: driverPoints });
+    assert.ok(gains[0] > 40 && gains[1] > 5, 'Compatibility stars/sweeps paint without CSS animation');
+    const frozen = await phoneStar.evaluate(node => node.style.opacity);
+    await phone.waitForTimeout(100);
+    assert.equal(await phoneStar.evaluate(node => node.style.opacity), frozen, 'Hidden compatibility layers stop changing');
+    await phone.evaluate(() => { delete document.hidden; document.dispatchEvent(new Event('visibilitychange')); });
     await phone.emulateMedia({ reducedMotion: 'reduce' });
     await phone.waitForFunction(() => !document.querySelector('.lunar-ambient'));
     await phone.evaluate(() => phoneEffects.dispose());
+    // The optional guard is independent of effects/recolor and restores on disable.
+    await phone.evaluate(async () => {
+        const { mountUI } = await import('/modules/ui/index.js');
+        const target = document.createElement('div'); document.body.append(target);
+        window.guardContext = { extensionSettings: { LunarCore: { ui: { mobileScrollGuard: true } } } };
+        window.disposeGuard = mountUI(target, guardContext);
+    });
+    assert.equal(await phone.locator('html').evaluate(node => getComputedStyle(node).overflow), 'clip');
+    assert.equal(await phone.locator('#chat').evaluate(node => getComputedStyle(node).overscrollBehavior), 'contain');
+    const guardChat = await phone.locator('#chat').evaluate(node => {
+        node.scrollTop = 0; node.scrollTop = 250; return { scroll: node.scrollTop, radius: getComputedStyle(node).borderTopLeftRadius, height: node.getBoundingClientRect().height };
+    });
+    assert.equal(guardChat.scroll, 250); assert.equal(guardChat.radius, '20px'); assert.equal(guardChat.height, 400);
+    await phone.locator('[data-mobile-scroll-guard]').evaluate(node => { node.checked = false; node.dispatchEvent(new Event('change', { bubbles: true })); });
+    assert.equal(await phone.locator('html').evaluate(node => node.classList.contains('lunar-mobile-scroll-guard')), false);
+    await phone.evaluate(() => disposeGuard());
     await mobile.close();
     assert.deepEqual(errors, []);
     console.log('LunarUI browser checks passed: profiles, opacity, migration-safe preferences, effects, visibility, reduced motion, mobile layout and cleanup.');

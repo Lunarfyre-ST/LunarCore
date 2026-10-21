@@ -88,9 +88,22 @@ Desktop stars use light-only screen blending with pale cores and no inherited
 dark shadow. Touch devices use white gradient crosses with ordinary alpha
 compositing, without clipping/blending or animated transforms. Touch sweeps move
 with a simpler position animation. Counts, timing and random-position cycles
-stay the same. Chat visibility is measured on the chat viewport itself, rather
+stay the same. **Animation renderer** defaults to Automatic: CSS on desktop,
+compatibility on touch devices. Compatibility updates the same decorative nodes
+with a JavaScript frame driver, capped at 24 paints/second, bypassing CSS keyframes
+for stars and sweeps. It pauses offscreen/hidden, stops on reduced motion and can
+be explicitly selected on any device. Soft bloom keeps its CSS animation.
+Chat visibility is measured on the chat viewport itself, rather
 than its outer Sheld wrapper. These compatibility measures are covered by mobile
 Chromium raster checks; Samsung Internet still needs a real-device smoke check.
+
+**Prevent mobile page drift (experimental)** is a separate, off-by-default
+control. On touch devices it clips root page overflow and contains chat overscroll
+to prevent scroll chaining into the surrounding page. It does not set Sheld
+position, height or rounding, or change native swipe handlers. It is independent
+of recoloring/effects, excluded from shared appearance presets, and undone by
+Disable all or module cleanup. It may help when the page pans sideways/upward;
+it cannot repair arbitrary native/IG sizing or browser visual-viewport bugs.
 Opaque or separately isolated content from custom themes may cover decorations;
 LunarUI does not remove native backgrounds, blur filters or transforms.
 

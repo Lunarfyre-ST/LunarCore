@@ -63,6 +63,9 @@
 .lunar-preset-tools { margin-block: 0.8em; }
 .lunar-ui-actions { display: flex; flex-wrap: wrap; gap: 0.5em; }
 .lunar-ui summary { cursor: pointer; }
+/* Optional containment only; native chat dimensions, corners and focus remain native. */
+html.lunar-mobile-scroll-guard, body.lunar-mobile-scroll-guard { overflow: clip !important; overscroll-behavior: none; }
+body.lunar-mobile-scroll-guard #chat { overscroll-behavior: contain; }
 
 /* An opt-in CSS layer: never rewrite or snapshot the user's native theme.
    Removing this class restores the current underlying theme immediately. */
@@ -116,7 +119,7 @@ body.lunar-twilight .lunar-icon:not(:where([data-lunar-ui~="off"], [data-lunar-u
 .lunar-content-layer { z-index: 1; }
 .lunar-content-position { position: relative; inset: auto !important; }
 #chat.lunar-layer-surface > .lunar-message-base { z-index: auto !important; }
-.lunar-ambient { position: absolute; z-index: 0; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none; user-select: none; }
+.lunar-ambient { position: absolute; z-index: 0; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none; user-select: none; overflow-anchor: none; }
 .lunar-ambient > span { pointer-events: none; }
 .lunar-ambient.lunar-ambient-frame { position: fixed; inset: auto; }
 .lunar-ambient.lunar-ambient-local { position: absolute; z-index: 1; max-width: 100%; max-height: 100%; }
@@ -155,6 +158,11 @@ body.lunar-twilight .lunar-icon:not(:where([data-lunar-ui~="off"], [data-lunar-u
 }
 @keyframes lunar-twinkle-touch { 0%, 38%, 72%, 100% { opacity: 0; } 55% { opacity: calc(var(--lunar-twinkles-strength,0.35) * 0.8); } }
 @keyframes lunar-sweep-touch { 0%, 68% { opacity: 0; left: -40%; } 74% { opacity: var(--lunar-sweeps-strength,0.35); } 94%, 100% { opacity: 0; left: 107%; } }
+.lunar-ambient.lunar-compatibility :is(.lunar-star, .lunar-sheen) { animation: none !important; transform: none; }
+.lunar-compatibility .lunar-star {
+    clip-path: none; mix-blend-mode: normal;
+    background: radial-gradient(ellipse 12% 50% at center, #fff 0 35%, transparent 100%), radial-gradient(ellipse 50% 12% at center, #fff 0 35%, transparent 100%);
+}
 @media (prefers-reduced-motion: reduce) { .lunar-ambient { display: none; } .lunar-ambient > span { animation: none !important; } }
 
 /* Resolve native aliases at :root before body recoloring; native theme updates propagate. */
