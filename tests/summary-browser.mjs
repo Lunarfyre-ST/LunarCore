@@ -149,6 +149,27 @@ try {
     await page.locator('[data-summary-unhide]').click();
     await page.waitForFunction(() => document.querySelector('[data-summary-status]').textContent.includes('Unhid'));
     assert.equal(await page.evaluate(() => ctx.chat[1].is_system), true, 'A subsequent user-owned hide must survive LunarSummary restoration');
+    // Catch-up fills gaps in full blocks, using the chat boundary from the click.
+    await page.locator('[data-summary-auto]').uncheck();
+    await page.evaluate(() => {
+        ctx.chatId = 'catchup';
+        ctx.chat = [{mes:'one'}, {mes:'two'}, {mes:'covered',extra:{lunarSummaryBlock:'existing'}}, {mes:'three'}, {mes:'four'}, {mes:'partial'}];
+        ctx.chatMetadata = {LunarCore_summary:{segments:[{id:'existing',text:'Existing',start:3,end:3,count:1,stale:false}],text:'Existing'}};
+        callbacks.chat.forEach(fn => fn());
+        window.beforeCatchUp = calls.length;
+        let firstSave = true;
+        ctx.saveMetadata = async () => { saves++; if (firstSave) { firstSave = false; ctx.chat.push({mes:'later one'}, {mes:'later two'}); } };
+    });
+    await page.locator('[data-summary-catch-up]').click();
+    for (let i = 1; i <= 2; i++) {
+        await page.waitForFunction(n => calls.length === beforeCatchUp + n, i);
+        await page.evaluate(n => resolveRequest({content:`Catch-up block ${n}`}), i);
+        await page.waitForFunction(n => document.querySelectorAll('.lunar-summary-block').length === n + 1, i);
+    }
+    await page.waitForFunction(() => document.querySelector('[data-summary-status]').textContent.includes('partial block'));
+    assert.equal(await page.evaluate(() => calls.length), await page.evaluate(() => beforeCatchUp + 2));
+    assert.deepEqual(await page.evaluate(() => ctx.chat.map(m => Boolean(m.extra?.lunarSummaryBlock))), [true, true, true, true, true, false, false, false]);
+    await page.evaluate(() => { ctx.saveMetadata = async () => { saves++; }; });
     await page.evaluate(() => { ctx.chat[2].extra.lunarSummaryGhost = true; ctx.chat[2].is_system = true; });
     await page.evaluate(() => disposeSummary());
     assert.equal(await page.evaluate(() => callbacks.chat.length), 0);

@@ -12,9 +12,16 @@ API or a connection profile. Review it and save the block. Automatic mode is off
 by default; when enabled, it sends and saves a block after a full batch of new
 messages, waiting for the group round to end. Summarize through a message number
 runs sequential batches through that point, including a final partial batch, and
-saves them without individual review. Each request may incur cost. One request is
+saves them without individual review. Summarize all complete missing blocks
+processes uncovered messages through the chat position at the time it is clicked,
+using the current block size; a partial final block is left for later. It also
+saves each block without individual review. Each request may incur cost. One request is
 active at a time. Cancel, a chat switch or an ordinary chat generation discards a
 pending result; main API requests may continue and incur cost after cancellation.
+
+The default prompt asks for two or three concise sentences without lists or
+headings. Provider output can still vary. Existing custom instructions and saved
+summaries are preserved; reset instructions to use the current default.
 
 Enable summary injection before opting into Ghost summarized messages. Ghosting
 uses SillyTavern's native is_system flag to exclude those messages from its prompt

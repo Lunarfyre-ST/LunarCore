@@ -14,6 +14,7 @@ export function mountSummary(target, getContext) {
         <details><summary>Summary instructions</summary><textarea class="text_pole" rows="5" maxlength="6000" data-summary-instructions></textarea><button type="button" class="menu_button" data-summary-reset>Reset instructions</button></details>
         <div class="lunar-summary-actions"><button type="button" class="menu_button" data-summary-generate>Generate draft</button><button type="button" class="menu_button" data-summary-cancel>Cancel request</button></div>
         <label><input type="checkbox" data-summary-auto> Automatically summarize full blocks after replies</label><small>Off by default. Automatic summaries are saved without review and send messages to the selected provider.</small>
+        <button type="button" class="menu_button" data-summary-catch-up>Summarize all complete missing blocks</button><small>Processes complete blocks through the current chat position, leaving any partial block for later. Blocks are saved without review; each request can incur cost.</small>
         <label>Summarize through message number <input class="text_pole" type="number" min="1" step="1" data-summary-through></label><button type="button" class="menu_button" data-summary-force>Summarize through this message</button><small>Runs as many requests as needed and saves each block. Each request can incur cost.</small>
         <label>Summary draft <textarea class="text_pole" rows="8" maxlength="32000" data-summary-draft></textarea></label>
         <div class="lunar-summary-actions"><button type="button" class="menu_button" data-summary-save>Save summary block</button><button type="button" class="menu_button" data-summary-reload>Discard draft</button><button type="button" class="menu_button" data-summary-unhide>Unhide LunarSummary messages</button></div>
@@ -82,6 +83,7 @@ export function mountSummary(target, getContext) {
         q('[data-summary-reload]').disabled = busy || !chatIdentity;
         q('[data-summary-unhide]').disabled = busy || !chatIdentity || Boolean(batchMode);
         q('[data-summary-force]').disabled = busy || !chatIdentity || Boolean(batchMode);
+        q('[data-summary-catch-up]').disabled = busy || !chatIdentity || Boolean(batchMode);
     }
     function persistSettings() {
         const ctx = getContext(), root = ctx.extensionSettings || ctx.extension_settings;
@@ -246,7 +248,7 @@ export function mountSummary(target, getContext) {
         if (q('[data-summary-draft]').value.trim()) { batchMode = null; sync(); setStatus('Save or discard the draft before running batches.'); return; }
         let rows;
         try { rows = selectMessages(batchMode.limit ? getContext().chat.slice(0, batchMode.limit) : getContext().chat, settings.messages); } catch (error) { batchMode = null; sync(); setStatus(error.message.includes('no conversation') ? 'Summarization is complete through the selected point.' : error.message); return; }
-        if (batchMode.automatic && rows.length < settings.messages) { batchMode = null; sync(); setStatus('Waiting for a full block of new messages.'); return; }
+        if (batchMode.automatic && rows.length < settings.messages) { const catchUp = batchMode.catchUp; batchMode = null; sync(); setStatus(catchUp ? 'Complete missing blocks summarized; any partial block remains for later.' : 'Waiting for a full block of new messages.'); return; }
         q('[data-summary-generate]').click();
     }
     function scheduleAutomatic() {
@@ -254,6 +256,12 @@ export function mountSummary(target, getContext) {
         if (getContext().groupId != null && (!types.GROUP_WRAPPER_STARTED || !types.GROUP_WRAPPER_FINISHED)) { setStatus('Automatic group summaries require group-round events from SillyTavern. Use manual or force summarization.'); return; }
         batchMode = { automatic: true }; nextBatch();
     }
+    q('[data-summary-catch-up]').addEventListener('click', () => {
+        const limit = getContext().chat?.length || 0;
+        if (!limit) { setStatus('There are no complete missing blocks to summarize.'); return; }
+        if (q('[data-summary-ghost]').checked && !settings.inject) { setStatus('Enable summary injection before ghosting messages.'); return; }
+        batchMode = { automatic: true, catchUp: true, limit }; sync(); nextBatch();
+    });
     q('[data-summary-force]').addEventListener('click', () => {
         const limit = Number(q('[data-summary-through]').value), count = getContext().chat?.length || 0;
         if (!Number.isInteger(limit) || limit < 1 || limit > count) { setStatus(`Choose a message number between 1 and ${count}.`); return; }
