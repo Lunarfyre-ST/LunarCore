@@ -3,6 +3,7 @@ import { mountDebug } from './modules/debug/index.js';
 import { readDebugPreferences } from './core/debug-preferences.js';
 import { mountSettingsPanel } from './core/settings-panel.js';
 import { mountUI } from './modules/ui/index.js';
+import { mountSummary } from './modules/summary/index.js';
 
 const runtimeKey = Symbol.for('LunarCore.runtime');
 const sinkKey = Symbol.for('LunarDebug.sink');
@@ -17,8 +18,9 @@ if (!globalThis[runtimeKey]) {
         globalThis[sinkKey] = recorder.api;
         const panel = mountSettingsPanel(target);
         const unmountUI = mountUI(panel.content, context, { onChange: fields => recorder.api.emit('ui.theme', fields) });
+        const unmountSummary = mountSummary(panel.content, () => globalThis.SillyTavern.getContext());
         const unmountDebug = mountDebug(recorder, context, panel.content, { onStatus: panel.updateStatus });
-        runtime.dispose = () => { unmountDebug(); unmountUI(); panel.dispose(); if (globalThis[sinkKey] === recorder.api) delete globalThis[sinkKey]; delete globalThis[runtimeKey]; };
+        runtime.dispose = () => { unmountDebug(); unmountSummary(); unmountUI(); panel.dispose(); if (globalThis[sinkKey] === recorder.api) delete globalThis[sinkKey]; delete globalThis[runtimeKey]; };
     };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initialize, { once: true });
     else initialize();

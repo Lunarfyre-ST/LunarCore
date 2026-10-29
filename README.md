@@ -1,4 +1,4 @@
-# LunarCore v0.0.9 — custom presets and extension compatibility
+# LunarCore v0.1.0 — LunarUI and an experimental summarizer
 
 LunarCore is a SillyTavern UI extension. Its first module is LunarDebug, an
 optional recorder for real-use diagnostic metadata, especially ImmersiveGroups.
@@ -17,8 +17,8 @@ not a byte or file-size limit. Capacity and auto-start preferences are saved
 through SillyTavern. Recordings are saved locally only if you enable auto-save below.
 Exports include the whole buffer regardless of the panel's event filter.
 
-The LunarCore drawer contains a small version label and separate LunarUI and
-LunarDebug drawers. Blue moon, laptop and butterfly icons identify them. LunarUI
+The LunarCore drawer contains a small version label and separate LunarUI,
+LunarSummary and LunarDebug drawers. LunarUI
 offers optional **Moonlight**, **Twilight** and **Starlight** recolors. Closing either drawer
 does not stop recording; attention counts remain visible on the LunarCore header.
 
@@ -40,6 +40,13 @@ collapsed advanced controls and a disable-all button. Other extensions can mark
 their UI with `data-lunar-ui="off"` to exclude LunarUI overhauls, or choose
 `colors` / `effects`. See the [extension contract](docs/LUNAR_UI_INTEGRATION.md)
 for examples and boundaries. Native chat borders/rounding remain native.
+
+LunarSummary is a first, manual iteration: select recent messages and a main API
+or connection profile, generate and edit a draft, then explicitly save it to the
+current chat. Optional saved-summary injection is off by default. Generation
+sends selected conversation text and speaker names to the chosen provider; saved
+summaries are stored in chat metadata and can be included in chat exports. See
+[LunarSummary](docs/LUNAR_SUMMARY.md) for limits, lifecycle and compatibility.
 
 If a mobile browser hides stars/sweeps, use **Animation renderer → Compatibility
 animations**; Automatic selects that path on touch devices. An independent

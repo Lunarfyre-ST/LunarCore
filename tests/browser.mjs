@@ -73,8 +73,8 @@ try {
     assert.equal(await page.evaluate(() => document.querySelector('.prome-vn-settings').previousElementSibling === document.querySelector('.lunar-core')), true);
     assert.equal(await page.locator('.lunar-core').evaluate(node => node.open), false);
     await page.locator('.lunar-core > summary').click();
-    assert.equal(await page.locator('.lunar-version').textContent(), 'LunarCore 0.0.9');
-    assert.equal(await page.locator('.lunar-core > .lunar-drawer-content > details').count(), 2);
+    assert.equal(await page.locator('.lunar-version').textContent(), 'LunarCore 0.1.0');
+    assert.equal(await page.locator('.lunar-core > .lunar-drawer-content > details').count(), 3);
     await page.locator('.lunar-ui > summary').focus(); await page.keyboard.press('Enter');
     assert.equal(await page.locator('.lunar-ui').evaluate(node => node.open), true);
     assert.equal(await page.locator('.lunar-debug').evaluate(node => node.open), false);
@@ -149,13 +149,18 @@ try {
         handlers.generationStop.forEach(fn => fn(PRIVATE));
     }, prefix);
     await page.locator('.ig-background-popover .ig-media-card').click();
+    await page.evaluate(() => {
+        for (const selector of ['[data-summary-instructions]', '[data-summary-draft]']) {
+            const node = document.querySelector(selector); node.value = 'PRIVATE_SUMMARY_TEXT'; node.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    });
     await page.waitForFunction(() => !document.querySelector('.ig-background-transition') && document.getElementById('bg1').getAnimations().length === 0);
     const downloadPromise = page.waitForEvent('download'); await page.locator('[data-export]').click();
     const download = await downloadPromise;
     const json = JSON.parse(await readFile(await download.path(), 'utf8'));
     assert.equal(JSON.stringify(json).includes('PRIVATE'), false);
     assert.equal(json.schemaVersion, 4);
-    assert.equal(json.versions.lunarCore, '0.0.9');
+    assert.equal(json.versions.lunarCore, '0.1.0');
     assert.ok(json.events.some(row => row.event === 'ui.theme' && row.theme === 'moonlight_blue' && row.enabled === true));
     assert.ok(json.events.some(row => row.event === 'ig.setting_snapshot' && row.setting === 'outfitFadeIn' && row.value === 200));
     assert.ok(json.events.some(row => row.event === 'ig.setting_change' && row.before === 200 && row.after === 300 && row.count === 100));
@@ -177,13 +182,13 @@ try {
     assert.ok(json.events.some(row => row.event === 'generation.lifecycle' && row.reason === 'end_event'));
     assert.ok(json.events.some(row => row.event === 'generation.lifecycle' && row.reason === 'stop_event'));
     await toggle.uncheck();
-    assert.equal(await page.evaluate(() => handlers.chat.length), 1); // IG animation cancellation remains subscribed.
+    assert.equal(await page.evaluate(() => handlers.chat.length), 2); // IG animation and LunarSummary remain subscribed.
     await page.locator('[data-capacity]').fill('1000'); await page.locator('[data-capacity]').press('Tab');
     assert.equal(await page.evaluate(() => ctx.extensionSettings.LunarCore.debug.capacity), 1000);
     await page.evaluate(() => { delete ImmersiveGroups.diagnosticsProtocol; });
     await page.waitForFunction(() => document.querySelector('[data-integration]').classList.contains('lunar-debug-warning'));
     await toggle.check();
-    assert.equal(await page.evaluate(() => handlers.chat.length), 3); // Host, lifecycle and IG animation subscribers.
+    assert.equal(await page.evaluate(() => handlers.chat.length), 4); // Host, lifecycle, IG animation and LunarSummary subscribers.
     await page.locator('[data-clear]').click();
     await page.locator('[data-filter]').selectOption('animation.');
     await page.evaluate(() => {
