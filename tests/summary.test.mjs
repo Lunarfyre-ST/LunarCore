@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readSummarySettings, selectMessages, buildRequest, requestSummary, extractSummary } from '../modules/summary/model.js';
+import { readSummarySettings, selectMessages, buildRequest, requestSummary, extractSummary, readSegments, composeSegments } from '../modules/summary/model.js';
 
 test('summarizer defaults to manual, validates limits and selects only recent conversation messages', () => {
     const settings = readSummarySettings({ inject: 'true', messages: 1000, tokens: -1, transport: 'custom' });
@@ -11,6 +11,17 @@ test('summarizer defaults to manual, validates limits and selects only recent co
     assert.ok(request[1].content.includes('First') && request[1].content.includes('Reply'));
     assert.throws(() => selectMessages([{ mes: 'x'.repeat(120001) }], 1), /120,000/);
     assert.throws(() => selectMessages([{ is_system: true, mes: 'system' }], 1), /no conversation/i);
+});
+
+test('blocks preserve legacy summaries and select oldest uncovered messages without system/tool rows', () => {
+    const legacy = readSegments({ text: 'Old summary' });
+    assert.equal(composeSegments(legacy), 'Old summary');
+    const blocks = [...legacy, { id: 'one', start: 1, end: 2, count: 2, text: 'First block' }, { id: 'two', start: 3, end: 4, count: 2, text: 'Stale block', stale: true }];
+    assert.equal(composeSegments(readSegments({ segments: blocks })), 'Old summary\n\nFirst block');
+    const rows = selectMessages([{ mes: 'covered', extra: { lunarSummaryBlock: 'one' } }, { mes: 'hidden', is_system: true }, { mes: 'tool', extra: { tool_invocations: [{}] } }, { mes: 'first new' }, { mes: 'second new' }, { mes: 'later' }], 2);
+    assert.deepEqual(rows.map(row => row.index), [3, 4]);
+    assert.equal(readSummarySettings().messages, 10);
+    assert.equal(readSummarySettings().auto, false);
 });
 
 test('uses native main/profile APIs and rejects empty, filtered or truncated responses', async () => {

@@ -14,3 +14,12 @@
 Validation covers model and disposable browser fixtures, shared recorder/IG
 integration and LunarUI. The host API was reviewed at ST commit 06bde939f;
 there has been no live SillyTavern server or provider validation yet.
+
+Subsequent v0.1.0 iteration: show separate summary cards with message ranges,
+a partial context meter and summarized/hidden/token counts. Add optional
+native ghosting with owned-message restoration, opt-in automatic blocks and
+sequential force-through batches. The previous single summary is retained as a
+legacy block. Ghosting needs enabled summary injection; manual generation uses
+reviewed drafts, while automatic/force batches save without per-block review.
+These changes need real SillyTavern/provider validation, particularly around
+hidden-message and multi-extension interactions.

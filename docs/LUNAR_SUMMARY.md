@@ -1,50 +1,60 @@
 # LunarSummary v0.1.0
 
-This first iteration creates a manually reviewed summary of the most recent 1–100
-non-system, nonempty messages, with a 120,000-character request limit. It sends
-the selected message text, speaker names and instructions only when you click
-Generate draft. Select the current main API or a saved SillyTavern connection
-profile; profile requests do not switch the active profile. The provider receives
-the conversation and can charge for the request. No custom endpoint or separate
-API-key field is implemented. No chat content is sent to LunarDebug.
+LunarSummary keeps separate chronological summary blocks in each chat. A block
+covers the next unsummarized conversation messages (default 10, adjustable 1–100)
+and is shown with its original one-based message range. Message ranges refer to
+SillyTavern message positions, not pairs of user/assistant turns. Delete a block
+with its × button to release its message coverage and restore its ghosted messages.
+Existing v0.1.0 single summaries are retained as an earlier-summary block.
 
-Review/edit the draft and click Save to store it in the current chat metadata.
-Chat exports and backups can contain the summary. SillyTavern's save API can
-swallow storage errors, so a completed save request is not a durability guarantee.
-Unsaved drafts are lost on chat switch or reload. The saved summary is independent
-of SillyTavern's built-in summary and other extensions. The next generation starts
-from the selected recent messages, not the previous summary; this is not yet an
-incremental or automatic memory system. Stored summaries do not rewind on edits,
-deletions or swipes; regenerate/review them when the conversation changes.
+Generate draft sends the chosen messages and speaker names to the current main
+API or a connection profile. Review it and save the block. Automatic mode is off
+by default; when enabled, it sends and saves a block after a full batch of new
+messages, waiting for the group round to end. Summarize through a message number
+runs sequential batches through that point, including a final partial batch, and
+saves them without individual review. Each request may incur cost. One request is
+active at a time. Cancel, a chat switch or an ordinary chat generation discards a
+pending result; main API requests may continue and incur cost after cancellation.
 
-Optionally enable injection to insert the saved summary as an in-chat system
-message at the chosen depth, including depth 0, or above the chat history in the
-host's in-prompt position, through a unique extension prompt key. Injection is
-off by default, follows the current chat, and is cleared on disable/disposal.
-It can coexist with ImmersiveGroups' independent scene prompt and other summary
-extensions; enabling multiple summaries can duplicate information or use tokens.
-Check generated text for errors before saving and injecting it.
+Enable summary injection before opting into Ghost summarized messages. Ghosting
+uses SillyTavern's native is_system flag to exclude those messages from its prompt
+while leaving them visible. LunarSummary marks only its own changed messages.
+Unhide LunarSummary messages restores those messages and keeps the summary blocks;
+this can make both original messages and summaries appear in the prompt. Delete a
+block to restore and make its messages eligible for summarizing again. The native
+hidden/system message count includes true system messages, while the separate
+LunarSummary count shows its own ghosted messages. Native user-unhide actions give
+up LunarSummary's ghost ownership. Native edits, deletions and swipes observed by
+LunarSummary mark affected blocks as needing review, remove them from injection,
+and unhide their remaining messages. Delete a stale block and regenerate it.
+Changes made while the extension is absent may not be detected; restore ghosted
+messages before disabling/uninstalling it. Changes by other extensions to native
+hidden flags can affect ownership and should be checked before unhide.
+On chat load, if summary injection is off or the host prompt hook is unavailable,
+LunarSummary restores its own ghosted messages and requests a chat save so their
+contents remain available to the prompt.
 
-The context meter counts the currently visible-to-prompt message text and enabled
-summary with the host tokenizer when available, otherwise approximately four
-characters per token. It compares that partial count with the configured maximum;
-character cards, world information, other extensions, formatting, output reserve,
-and actual context trimming are not counted. It is not a total prompt meter.
+Injection is off by default. Enable it to add the saved non-stale blocks as a
+system message at a chosen in-chat depth (including zero) or at the host's
+above-history position. Other summaries and ImmersiveGroups' scene prompt remain
+independent; using more than one may duplicate information or use extra tokens.
+Output can be inaccurate; review it before using it as story continuity. This
+extension does not change any other extension's prompt settings.
 
-Changing chats, settings or cancelling discards any in-flight result. Changes to
-the selected messages or draft also invalidate it. Profile requests receive an
-abort signal; SillyTavern's current main API method does not accept one, so its
-request can continue and incur cost after cancellation. Only one summary request
-is allowed at a time until its underlying call settles. Wait for the summary call
-to finish before starting chat generation; starting a non-quiet chat generation
-discards the pending result, but may overlap the underlying main API request.
-Some host API paths return only text without finish reasons, so a truncated
-response cannot always be detected automatically. No automatic requests,
-history mutation, private diagnostic events or API credentials are added.
+The top context meter counts current non-system message text and the enabled
+LunarSummary injection using the host tokenizer when available, or a rough
+four-characters-per-token fallback. It compares this partial count with the host's
+configured context maximum. It does not include cards, lore, other extensions,
+formatting, output reserve or actual context trimming, and is not the complete
+prompt. Summary tokens count active non-stale block text even if injection is off.
 
-ImmersiveGroups uses the same public prompt hook for scene context and the same
-main/profile request APIs for scene analysis, but LunarSummary imports none of
-its internals. Its prompt may see scene-command lines within message text and
-asks the model to ignore them; this is not a guaranteed parser. The implementation
-was checked against SillyTavern source at commit 06bde939f and simulated browser
-fixtures, not a live server or every provider.
+Summaries and ownership markers are stored in chat data and can appear in exports
+and backups. No chat contents are sent to LunarDebug. The host save API can swallow
+storage errors, so a returned save is not a durability guarantee. Unsaved drafts
+are lost on chat switch/reload. The default API can lack truncation metadata, and
+response length cannot always be verified. No custom endpoint/API key field is
+implemented; use a SillyTavern connection profile for a separate provider.
+
+The implementation uses native prompt and request APIs reviewed at SillyTavern
+commit 06bde939f. Tests use disposable Chromium fixtures; they are not live-server
+or actual-provider verification.

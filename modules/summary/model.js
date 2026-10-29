@@ -7,22 +7,33 @@ export function readSummarySettings(value = {}) {
     return {
         transport: value?.transport === 'profile' ? 'profile' : 'main',
         profile: typeof value?.profile === 'string' ? value.profile.slice(0, 200) : '',
-        messages: limit(value?.messages, 1, 100, 20),
+        messages: limit(value?.messages, 1, 100, 10),
         tokens: limit(value?.tokens, 64, 2048, 512),
         depth: limit(value?.depth, 0, 10000, 2),
         position: value?.position === 'above' ? 'above' : 'chat',
         inject: value?.inject === true,
+        auto: value?.auto === true,
+        ghost: value?.ghost === true,
         instructions: typeof value?.instructions === 'string' ? value.instructions.slice(0, 6000) : DEFAULT_INSTRUCTIONS,
     };
 }
 
 export function selectMessages(chat, count) {
     const rows = (Array.isArray(chat) ? chat : []).map((message, index) => ({ message, index }))
-        .filter(({ message }) => message && !message.is_system && typeof message.mes === 'string' && message.mes.trim()).slice(-count);
+        .filter(({ message }) => message && !message.is_system && !message.extra?.lunarSummaryBlock && !message.extra?.lunarSummaryGhost && !message.extra?.tool_invocations && typeof message.mes === 'string' && message.mes.trim()).slice(0, count);
     if (!rows.length) throw new Error('There are no conversation messages to summarize.');
     // Refuse oversize requests rather than silently dropping/truncating history.
     if (rows.reduce((sum, row) => sum + row.message.mes.length, 0) > 120000) throw new Error('Selected messages exceed 120,000 characters. Select fewer messages.');
     return rows.map(({ message, index }) => ({ message, index, text: message.mes, swipe: message.swipe_id, name: String(message.name || '').slice(0, 200), user: Boolean(message.is_user) }));
+}
+
+export function readSegments(data) {
+    if (Array.isArray(data?.segments)) return data.segments.filter(item => item && typeof item.id === 'string' && typeof item.text === 'string' && Number.isInteger(item.start) && Number.isInteger(item.end) && Number.isInteger(item.count)).map(item => ({ id: item.id, text: item.text.slice(0, 32000), start: item.start, end: item.end, count: item.count, stale: item.stale === true }));
+    return typeof data?.text === 'string' && data.text ? [{ id: 'legacy', text: data.text.slice(0, 32000), start: 0, end: 0, count: 0, stale: false }] : [];
+}
+
+export function composeSegments(segments) {
+    return segments.filter(segment => !segment.stale && segment.text.trim()).map(segment => segment.text.trim()).join('\n\n');
 }
 
 export function buildRequest(rows, instructions) {

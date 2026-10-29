@@ -37,11 +37,16 @@
 .lunar-ui p { font-size: 0.9em; opacity: 0.8; }
 .lunar-summary label { display: block; margin-block: 0.7em; }
 .lunar-summary [hidden] { display: none !important; }
+.lunar-summary > .lunar-drawer-content > small { display: block; margin-block: 0.4em; }
 .lunar-summary textarea { display: block; width: 100%; box-sizing: border-box; }
 .lunar-summary-actions { display: flex; flex-wrap: wrap; gap: 0.5em; margin-block: 0.6em; }
 .lunar-summary-context { display: grid; gap: 0.4em; margin-block: 1em; }
 .lunar-summary-context progress { width: 100%; accent-color: var(--lunar-quote, #64b5f6); }
 .lunar-summary-context button { justify-self: start; }
+.lunar-summary-blocks { display: grid; gap: 0.35em; margin-block: 0.7em; }
+.lunar-summary-block { display: flex; align-items: flex-start; gap: 0.7em; padding: 0.6em; border: 1px solid var(--SmartThemeBorderColor, #445); border-radius: 6px; color: var(--SmartThemeBodyColor, #eee); background: var(--SmartThemeBlurTintColor, #252733); }
+.lunar-summary-block > div { flex: 1; min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.lunar-summary-block small { flex: none; opacity: 0.7; }
 .lunar-attention { font-size: 0.8em; color: #e3b75a; }
 
 .lunar-theme-toggle { display: flex; align-items: center; gap: 0.5em; margin-block: 0.6em; }

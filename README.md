@@ -41,11 +41,13 @@ their UI with `data-lunar-ui="off"` to exclude LunarUI overhauls, or choose
 `colors` / `effects`. See the [extension contract](docs/LUNAR_UI_INTEGRATION.md)
 for examples and boundaries. Native chat borders/rounding remain native.
 
-LunarSummary is a first, manual iteration: select recent messages and a main API
-or connection profile, generate and edit a draft, then explicitly save it to the
-current chat. Optional saved-summary injection is off by default. Generation
-sends selected conversation text and speaker names to the chosen provider; saved
-summaries are stored in chat metadata and can be included in chat exports. See
+LunarSummary creates sequential, per-chat summary blocks from the next unsummarized
+messages, with a context estimate and message/token counts. Generate and review a
+draft manually, optionally ghost its messages, or opt into automatic batches. A
+force control can summarize through a chosen message. Injection and automatic
+requests start off. Generation sends selected conversation text and speaker names
+to the chosen main API or connection profile; summaries are stored with the chat
+and can be included in exports. See
 [LunarSummary](docs/LUNAR_SUMMARY.md) for limits, lifecycle and compatibility.
 
 If a mobile browser hides stars/sweeps, use **Animation renderer → Compatibility
