@@ -39,6 +39,9 @@
 .lunar-summary [hidden] { display: none !important; }
 .lunar-summary textarea { display: block; width: 100%; box-sizing: border-box; }
 .lunar-summary-actions { display: flex; flex-wrap: wrap; gap: 0.5em; margin-block: 0.6em; }
+.lunar-summary-context { display: grid; gap: 0.4em; margin-block: 1em; }
+.lunar-summary-context progress { width: 100%; accent-color: var(--lunar-quote, #64b5f6); }
+.lunar-summary-context button { justify-self: start; }
 .lunar-attention { font-size: 0.8em; color: #e3b75a; }
 
 .lunar-theme-toggle { display: flex; align-items: center; gap: 0.5em; margin-block: 0.6em; }

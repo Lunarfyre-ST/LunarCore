@@ -14,14 +14,16 @@ export function mountSummary(target, getContext) {
         <label>Summary draft <textarea class="text_pole" rows="8" maxlength="32000" data-summary-draft></textarea></label>
         <div class="lunar-summary-actions"><button type="button" class="menu_button" data-summary-save>Save summary to this chat</button><button type="button" class="menu_button" data-summary-reload>Discard draft and reload saved summary</button></div>
         <label><input type="checkbox" data-summary-inject> Inject the saved summary into chat prompts</label>
+        <label>Summary position <select class="text_pole" data-summary-position><option value="above">Above chat history</option><option value="chat">In chat at depth</option></select></label>
         <label>Injection depth <input class="text_pole" type="number" min="0" max="10000" data-summary-depth></label>
+        <div class="lunar-summary-context"><strong>Context estimate</strong><progress data-summary-meter max="1" value="0"></progress><small data-summary-meter-label>Open a chat for an estimate.</small><button type="button" class="menu_button" data-summary-meter-refresh>Refresh estimate</button><small>Conversation and enabled LunarSummary text only. Cards, lore, other extensions, formatting and reserved output are excluded; this is not the full prompt.</small></div>
         <p>Injection is off by default and uses only the saved summary. Summaries are stored in chat metadata, may be included in chat exports, and are not automatically updated or rolled back when messages change. This is separate from SillyTavern's built-in summary.</p>
         <small data-summary-status role="status"></small>`;
     target.append(drawer.drawer);
     const q = selector => drawer.content.querySelector(selector);
     const initial = getContext(), source = initial.eventSource, types = initial.eventTypes || initial.event_types || {};
     let settings = readSummarySettings(initial.extensionSettings?.LunarCore?.summary);
-    let disposed = false, pending = null, epoch = 0, saveBusy = false, saved = '', chatIdentity = null;
+    let disposed = false, pending = null, epoch = 0, meterSerial = 0, saveBusy = false, saved = '', chatIdentity = null;
     const identity = context => {
         const chat = context.getCurrentChatId?.();
         return chat == null || chat === '' ? null : JSON.stringify([context.groupId ?? null, context.groupId == null ? context.characterId ?? null : null, chat]);
@@ -31,7 +33,7 @@ export function mountSummary(target, getContext) {
     function inject(context = getContext()) {
         if (typeof context.setExtensionPrompt !== 'function') return false;
         const text = chatIdentity && identity(context) === chatIdentity && settings.inject && saved ? `Story summary for continuity (reference data):\n${saved}` : '';
-        try { context.setExtensionPrompt(PROMPT_KEY, text, 1, settings.depth, false, 0); return true; } catch { return false; }
+        try { context.setExtensionPrompt(PROMPT_KEY, text, settings.position === 'above' ? 0 : 1, settings.depth, false, 0); return true; } catch { return false; }
     }
     function updateProfiles() {
         const select = q('[data-summary-profile]'), profiles = getContext().extensionSettings?.connectionManager?.profiles;
@@ -48,6 +50,8 @@ export function mountSummary(target, getContext) {
         updateProfiles();
         for (const key of ['messages', 'tokens', 'depth', 'instructions']) q(`[data-summary-${key}]`).value = settings[key];
         q('[data-summary-inject]').checked = settings.inject;
+        q('[data-summary-position]').value = settings.position;
+        q('[data-summary-depth]').disabled = settings.position !== 'chat';
         q('[data-summary-generate]').disabled = busy || !chatIdentity;
         q('[data-summary-cancel]').disabled = !pending || pending.signal.aborted;
         q('[data-summary-save]').disabled = busy || !chatIdentity;
@@ -58,14 +62,28 @@ export function mountSummary(target, getContext) {
         if (root) { root.LunarCore ||= {}; root.LunarCore.summary = { ...settings }; ctx.saveSettingsDebounced?.(); }
         const available = inject(ctx); sync();
         if (settings.inject && !available) setStatus('Summary injection is unavailable in this SillyTavern session.');
+        updateMeter();
+    }
+    async function updateMeter() {
+        const serial = ++meterSerial, ctx = getContext(), key = identity(ctx), max = Number(ctx.maxContext);
+        const text = (Array.isArray(ctx.chat) ? ctx.chat : []).filter(message => message && !message.is_system && typeof message.mes === 'string').map(message => `${message.name || ''}: ${message.mes}`).join('\n');
+        const included = settings.inject ? saved : '';
+        let count, estimated = false;
+        try { if (typeof ctx.getTokenCountAsync === 'function') count = await ctx.getTokenCountAsync(`${text}\n${included}`, 0); } catch { /* Use a rough fallback. */ }
+        if (!Number.isFinite(count)) { count = Math.ceil((text.length + included.length) / 4); estimated = true; }
+        if (disposed || serial !== meterSerial || key !== identity(getContext())) return;
+        const meter = q('[data-summary-meter]');
+        meter.max = Number.isFinite(max) && max > 0 ? max : 1; meter.value = Math.min(meter.max, count);
+        q('[data-summary-meter-label]').textContent = key ? `${estimated ? 'Rough estimate' : 'Tokenizer count'}: ${count.toLocaleString()} tokens${max > 0 ? ` of ${max.toLocaleString()} configured context tokens` : ' (context limit unavailable)'}.` : 'Open a chat for an estimate.';
     }
     function cancel() { epoch++; pending?.abort(); sync(); }
     function switchChat() {
         cancel(); const ctx = getContext(); chatIdentity = identity(ctx); saved = chatIdentity ? savedText(ctx) : '';
         q('[data-summary-draft]').value = saved; const available = inject(ctx); sync();
         setStatus(settings.inject && !available ? 'Summary injection is unavailable in this SillyTavern session.' : chatIdentity ? 'Ready. Unsaved drafts are discarded when changing chats.' : 'Open a chat to create a summary.');
+        updateMeter();
     }
-    for (const key of ['transport', 'profile', 'messages', 'tokens', 'depth', 'instructions', 'inject']) {
+    for (const key of ['transport', 'profile', 'messages', 'tokens', 'depth', 'position', 'instructions', 'inject']) {
         const element = q(`[data-summary-${key}]`);
         element.addEventListener('change', () => {
             const value = key === 'inject' ? element.checked : ['messages', 'tokens', 'depth'].includes(key) ? Number(element.value) : element.value;
@@ -83,7 +101,7 @@ export function mountSummary(target, getContext) {
         try {
             metadata[SUMMARY_KEY] = entry;
             await ctx.saveMetadata();
-            if (!disposed && key === identity(getContext())) { saved = draft; const available = inject(); setStatus(settings.inject && !available ? 'Save requested; summary injection is unavailable.' : 'Save requested through SillyTavern.'); }
+            if (!disposed && key === identity(getContext())) { saved = draft; const available = inject(); updateMeter(); setStatus(settings.inject && !available ? 'Save requested; summary injection is unavailable.' : 'Save requested through SillyTavern.'); }
         } catch {
             if (metadata[SUMMARY_KEY] === entry) { if (existed) metadata[SUMMARY_KEY] = previous; else delete metadata[SUMMARY_KEY]; }
             if (!disposed && key === identity(getContext())) setStatus('Could not save the summary. Check SillyTavern.');
@@ -112,7 +130,9 @@ export function mountSummary(target, getContext) {
         } finally { if (pending === controller) pending = null; sync(); }
     });
     const listeners = [];
+    q('[data-summary-meter-refresh]').addEventListener('click', updateMeter);
     for (const name of ['CHAT_CHANGED', 'GROUP_CHAT_CHANGED']) if (types[name] && source?.on) { source.on(types[name], switchChat); listeners.push([types[name], switchChat]); }
+    for (const name of ['MESSAGE_RECEIVED', 'MESSAGE_SENT', 'MESSAGE_EDITED', 'MESSAGE_DELETED', 'MESSAGE_SWIPED']) if (types[name] && source?.on) { source.on(types[name], updateMeter); listeners.push([types[name], updateMeter]); }
     if (types.GENERATION_STARTED && source?.on) {
         const generationStarted = (type, _options, dryRun) => {
             if (pending && !dryRun && type !== 'quiet') { cancel(); setStatus('Chat generation started; the summary result will be discarded.'); }

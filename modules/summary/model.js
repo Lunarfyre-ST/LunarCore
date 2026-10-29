@@ -10,6 +10,7 @@ export function readSummarySettings(value = {}) {
         messages: limit(value?.messages, 1, 100, 20),
         tokens: limit(value?.tokens, 64, 2048, 512),
         depth: limit(value?.depth, 0, 10000, 2),
+        position: value?.position === 'above' ? 'above' : 'chat',
         inject: value?.inject === true,
         instructions: typeof value?.instructions === 'string' ? value.instructions.slice(0, 6000) : DEFAULT_INSTRUCTIONS,
     };

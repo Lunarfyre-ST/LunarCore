@@ -10,7 +10,7 @@ const html = `<!doctype html><html><head><link rel="stylesheet" href="/style.css
 import { mountSummary } from '/modules/summary/index.js';
 window.callbacks = {}; window.prompts = []; window.calls = []; window.saves = 0;
 window.ctx = { chatId: 'a', groupId: null, characterId: 1, chat: [{ name: 'PRIVATE_A', is_user: true, mes: 'PRIVATE_INPUT' }, { name: 'PRIVATE_B', mes: 'PRIVATE_OUTPUT', swipe_id: 0 }], chatMetadata: {}, extensionSettings: { LunarCore: { debug: { capacity: 3000 } }, connectionManager: { profiles: [{ id: 'p1', name: 'Fixture profile' }] } },
-  getCurrentChatId() { return this.chatId; }, saveSettingsDebounced() {}, async saveMetadata() { saves++; }, setExtensionPrompt(...args) { prompts.push(args); },
+  maxContext: 1000, async getTokenCountAsync() { return 123; }, getCurrentChatId() { return this.chatId; }, saveSettingsDebounced() {}, async saveMetadata() { saves++; }, setExtensionPrompt(...args) { prompts.push(args); },
   eventTypes: { CHAT_CHANGED: 'chat', GENERATION_STARTED: 'generation' }, eventSource: { on(n, f) { (callbacks[n] ||= []).push(f); }, removeListener(n, f) { callbacks[n] = callbacks[n].filter(x => x !== f); } },
   generateRaw(args) { calls.push(args); return new Promise((resolve, reject) => { window.resolveRequest = resolve; window.rejectRequest = reject; }); },
   ConnectionManagerRequestService: { sendRequest(...args) { calls.push(args); return new Promise(resolve => { window.resolveRequest = resolve; }); } }
@@ -34,6 +34,8 @@ try {
     await page.goto(`http://127.0.0.1:${server.address().port}`);
     await page.locator('.lunar-summary > summary').click();
     assert.equal(await page.locator('[data-summary-inject]').isChecked(), false);
+    await page.waitForFunction(() => document.querySelector('[data-summary-meter-label]').textContent.includes('123'));
+    assert.equal(await page.locator('[data-summary-meter]').evaluate(node => [node.value, node.max].join('/')), '123/1000');
     assert.equal(await page.evaluate(() => calls.length), 0);
     await page.locator('[data-summary-generate]').click();
     assert.equal(await page.evaluate(() => calls.length), 1);
@@ -48,6 +50,12 @@ try {
     assert.equal(await page.evaluate(() => prompts.at(-1)[1]), '');
     await page.locator('[data-summary-inject]').check();
     assert.ok((await page.evaluate(() => prompts.at(-1)[1])).includes('Reviewed summary'));
+    await page.locator('[data-summary-position]').selectOption('above');
+    assert.equal(await page.evaluate(() => prompts.at(-1)[2]), 0);
+    assert.equal(await page.locator('[data-summary-depth]').isDisabled(), true);
+    await page.locator('[data-summary-position]').selectOption('chat');
+    await page.locator('[data-summary-depth]').fill('0'); await page.locator('[data-summary-depth]').press('Tab');
+    assert.deepEqual(await page.evaluate(() => prompts.at(-1).slice(2, 4)), [1, 0]);
     assert.equal(await page.evaluate(() => ctx.extensionSettings.LunarCore.debug.capacity), 3000);
     await page.locator('[data-summary-draft]').fill('Unsaved change');
     await page.evaluate(() => { ctx.saveMetadata = async () => { throw new Error('PRIVATE_ERROR'); }; });

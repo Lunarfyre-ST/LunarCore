@@ -18,11 +18,18 @@ incremental or automatic memory system. Stored summaries do not rewind on edits,
 deletions or swipes; regenerate/review them when the conversation changes.
 
 Optionally enable injection to insert the saved summary as an in-chat system
-message at the chosen depth, through a unique extension prompt key. Injection is
+message at the chosen depth, including depth 0, or above the chat history in the
+host's in-prompt position, through a unique extension prompt key. Injection is
 off by default, follows the current chat, and is cleared on disable/disposal.
 It can coexist with ImmersiveGroups' independent scene prompt and other summary
 extensions; enabling multiple summaries can duplicate information or use tokens.
 Check generated text for errors before saving and injecting it.
+
+The context meter counts the currently visible-to-prompt message text and enabled
+summary with the host tokenizer when available, otherwise approximately four
+characters per token. It compares that partial count with the configured maximum;
+character cards, world information, other extensions, formatting, output reserve,
+and actual context trimming are not counted. It is not a total prompt meter.
 
 Changing chats, settings or cancelling discards any in-flight result. Changes to
 the selected messages or draft also invalidate it. Profile requests receive an
